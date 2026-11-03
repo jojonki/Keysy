@@ -55,8 +55,13 @@ Keysy writes your shortcut into macOS's settings (the same place System Settings
 Keyboard Shortcuts uses), so they work even when Keysy isn't running. Each row shows macOS's
 official shortcut with a **Default / Custom / Off** badge; ↩︎ resets that row to the official one.
 
+### Keysy ▸ Import & Export
+Export all your settings (Custom Shortcuts, Window Layouts, and the macOS Features you changed) to a
+JSON file and import it on another Mac. Importing replaces the current settings after asking.
+
 ### Also
 - Launch at login, automatic update check from GitHub Releases
+- Compact menu bar menu: counts per section, click to open that page
 - Links to this repository and to sponsorship from the menu
 
 ## Install

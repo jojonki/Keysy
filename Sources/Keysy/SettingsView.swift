@@ -327,6 +327,39 @@ struct SystemShortcutsView: View {
     }
 }
 
+struct TransferView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TabHeader(title: "Import & Export",
+                      summary: "Save all your settings to a file and load them on another Mac.", scope: nil)
+                .padding([.horizontal, .top], 16)
+            Form {
+                Section {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Export Settings…")
+                            Text("Custom Shortcuts, Window Layouts, and the macOS Features you changed.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Export…") { BackupIO.export() }
+                    }
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Import Settings…")
+                            Text("Replaces your current settings with the ones in the file. You'll be asked first.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Import…") { BackupIO.importFromFile() }
+                    }
+                }
+            }
+            .formStyle(.grouped)
+        }
+    }
+}
+
 struct GeneralView: View {
     @State private var autoUpdate = Updater.autoCheckEnabled
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -362,7 +395,7 @@ struct GeneralView: View {
 }
 
 enum SettingsPage: String, CaseIterable, Identifiable {
-    case otherShortcuts, windowLayouts, macOSFeatures, startup
+    case otherShortcuts, windowLayouts, macOSFeatures, startup, transfer
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -370,6 +403,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .windowLayouts: return "Window Layouts"
         case .macOSFeatures: return "macOS Features"
         case .startup: return "Startup & Updates"
+        case .transfer: return "Import & Export"
         }
     }
     var symbol: String {
@@ -378,6 +412,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .windowLayouts: return "macwindow"
         case .macOSFeatures: return "apple.logo"
         case .startup: return "gearshape"
+        case .transfer: return "arrow.up.arrow.down.circle"
         }
     }
     static let shortcutPages: [SettingsPage] = [.otherShortcuts, .windowLayouts, .macOSFeatures]
@@ -397,9 +432,11 @@ struct SettingsView: View {
                 Section("Shortcut →") {
                     ForEach(SettingsPage.shortcutPages) { p in Label(p.title, systemImage: p.symbol).tag(p) }
                 }
+                .collapsible(false)
                 Section("Keysy") {
-                    Label(SettingsPage.startup.title, systemImage: SettingsPage.startup.symbol).tag(SettingsPage.startup)
+                    ForEach([SettingsPage.startup, .transfer]) { p in Label(p.title, systemImage: p.symbol).tag(p) }
                 }
+                .collapsible(false)
             }
             .safeAreaInset(edge: .bottom) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -418,6 +455,7 @@ struct SettingsView: View {
                 case .windowLayouts: WindowCommandsView()
                 case .macOSFeatures: SystemShortcutsView()
                 case .startup: GeneralView()
+                case .transfer: TransferView()
                 }
             }
             // Fill the window; long lists scroll instead of stretching the layout.

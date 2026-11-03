@@ -21,6 +21,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { Updater.shared.checkIfDue() }
         #if DEBUG
         if let path = ProcessInfo.processInfo.environment["KEYSY_SNAPSHOT"] { snapshotSettings(to: path) }
+        if ProcessInfo.processInfo.environment["KEYSY_BACKUP_TEST"] != nil {
+            let e = JSONEncoder(); e.outputFormatting = [.prettyPrinted, .sortedKeys]; e.dateEncodingStrategy = .iso8601
+            let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
+            let before = KeysyBackup.current()
+            let data = try! e.encode(before)
+            print(String(data: data, encoding: .utf8)!)
+            try! d.decode(KeysyBackup.self, from: data).apply()
+            let after = KeysyBackup.current()
+            print("round-trip macOS equal:", before.macOSFeatures == after.macOSFeatures,
+                  "rules equal:", before.customShortcuts == after.customShortcuts,
+                  "windows equal:", before.windowLayouts == after.windowLayouts)
+            exit(0)
+        }
         #endif
     }
 
@@ -59,23 +72,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let warn = NSMenuItem(title: "⚠︎ Grant Accessibility Permission…", action: #selector(openAX), keyEquivalent: "")
             warn.target = self; menu.addItem(warn)
         }
-        func header(_ t: String) {
-            menu.addItem(.separator())
-            let h = NSMenuItem(title: t, action: nil, keyEquivalent: ""); h.isEnabled = false
-            h.attributedTitle = NSAttributedString(string: t, attributes: [.font: NSFont.boldSystemFont(ofSize: 12)])
-            menu.addItem(h)
-        }
-        func line(_ t: String) {
-            let i = NSMenuItem(title: t, action: nil, keyEquivalent: ""); i.isEnabled = false; menu.addItem(i)
-        }
-        header("Shortcut → Custom Shortcuts")
-        let remaps = store.rules.filter { $0.enabled && $0.isComplete }
-        if remaps.isEmpty { line("None") }
-        for r in remaps.prefix(20) { line("\(r.from!.display)  →  \(r.to!.display)") }
-        header("Shortcut → Window Layouts")
-        let wins = WindowCommand.allCases.compactMap { c in WindowShortcutStore.shared.shortcuts[c].map { (c, $0) } }
-        if wins.isEmpty { line("None") }
-        for (c, k) in wins { line("\(k.display)  →  \(c.title)") }
+        // Counts only: lists would grow without bound as shortcuts are added.
+        menu.addItem(.separator())
+        let shortcutsHeader = NSMenuItem(title: "Shortcut →", action: nil, keyEquivalent: ""); shortcutsHeader.isEnabled = false
+        menu.addItem(shortcutsHeader)
+        let custom = store.rules.filter { $0.enabled && $0.isComplete }.count
+        let windows = WindowShortcutStore.shared.shortcuts.count
+        let mac = SystemShortcutStore.shared.exportSettings().count
+        add(menu, "Custom Shortcuts — \(custom)", #selector(openPage(_:)), page: .otherShortcuts)
+        add(menu, "Window Layouts — \(windows)", #selector(openPage(_:)), page: .windowLayouts)
+        add(menu, "macOS Features — \(mac) changed", #selector(openPage(_:)), page: .macOSFeatures)
         menu.addItem(.separator())
         add(menu, "Settings…", #selector(openSettings), key: ",")
         add(menu, "Check for Updates…", #selector(checkUpdates))
@@ -86,9 +92,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(withTitle: "Quit Keysy", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     }
 
-    private func add(_ menu: NSMenu, _ title: String, _ sel: Selector, key: String = "", url: URL? = nil) {
+    private func add(_ menu: NSMenu, _ title: String, _ sel: Selector, key: String = "", url: URL? = nil,
+                     page: SettingsPage? = nil) {
         let i = NSMenuItem(title: title, action: sel, keyEquivalent: key)
-        i.target = self; i.representedObject = url
+        i.target = self; i.representedObject = url ?? page?.rawValue
+        if page != nil { i.indentationLevel = 1 }
         menu.addItem(i)
     }
 
@@ -97,6 +105,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func openSettings() {
         if settings == nil { settings = SettingsWindowController() }
         settings?.present()
+    }
+    @objc private func openPage(_ sender: NSMenuItem) {
+        if let p = sender.representedObject as? String { UserDefaults.standard.set(p, forKey: "settingsPage") }
+        openSettings()
     }
     @objc private func checkUpdates() { Updater.shared.check(userInitiated: true) }
     @objc private func openURL(_ sender: NSMenuItem) {

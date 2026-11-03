@@ -228,6 +228,15 @@ final class WindowShortcutStore: ObservableObject {
 
     func set(_ combo: KeyCombo?, for c: WindowCommand) {
         shortcuts[c] = combo
+        persist()
+    }
+
+    func replaceAll(_ new: [WindowCommand: KeyCombo]) {
+        shortcuts = new
+        persist()
+    }
+
+    private func persist() {
         let raw = Dictionary(uniqueKeysWithValues: shortcuts.map { ($0.key.rawValue, $0.value) })
         if let d = try? JSONEncoder().encode(raw) { UserDefaults.standard.set(d, forKey: Self.key) }
         NotificationCenter.default.post(name: RuleStore.changed, object: nil)

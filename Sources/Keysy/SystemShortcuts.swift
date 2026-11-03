@@ -114,6 +114,38 @@ final class SystemShortcutStore: ObservableObject {
         }
     }
 
+    // MARK: backup
+
+    /// Changed features only (absent = macOS default).
+    func exportSettings() -> [String: FeatureSetting] {
+        var out: [String: FeatureSetting] = [:]
+        let all = Self.hotKeys()
+        for f in SystemFeature.all {
+            guard case .symbolicHotKey(let id) = f.backend, let entry = all[String(id)] as? [String: Any] else { continue }
+            if !Self.isEnabled(entry) { out[f.id] = .off; continue }
+            if let c = Self.combo(fromHotKeyEntry: entry), c != f.macDefault { out[f.id] = .shortcut(c) }
+        }
+        return out
+    }
+
+    /// Makes every feature match `settings` (features not listed go back to the macOS default).
+    func importSettings(_ settings: [String: FeatureSetting]) {
+        objectWillChange.send()
+        var all = Self.hotKeys()
+        for f in SystemFeature.all {
+            guard case .symbolicHotKey(let id) = f.backend else { continue }
+            switch settings[f.id] {
+            case .shortcut(let c): all[String(id)] = Self.hotKeyEntry(for: c)
+            case .off:
+                var e = Self.hotKeyEntry(for: f.macDefault ?? KeyCombo(keyCode: 0, modifiers: 0))
+                e["enabled"] = false
+                all[String(id)] = e
+            case nil: all[String(id)] = f.macDefault.map(Self.hotKeyEntry(for:))
+            }
+        }
+        Self.writeHotKeys(all)
+    }
+
     // MARK: symbolic hotkeys
 
     private static func hotKeys() -> [String: Any] {
