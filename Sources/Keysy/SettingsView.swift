@@ -175,7 +175,6 @@ struct SystemFeatureRow: View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(feature.title)
-                    .help(feature.englishTitle == feature.title ? "" : feature.englishTitle)
                 Text("macOS default: \(feature.macDefaultDisplay)")
                     .font(.caption).foregroundStyle(.secondary)
             }
@@ -220,26 +219,65 @@ struct SystemFeatureRow: View {
     }
 }
 
-struct SystemShortcutsView: View {
-    @ObservedObject var store = SystemShortcutStore.shared
+struct WindowCommandRow: View {
+    let command: WindowCommand
+    @ObservedObject var store = WindowShortcutStore.shared
+
+    var body: some View {
+        let combo = store.shortcuts[command]
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(command.title)
+                if let d = command.detail { Text(d).font(.caption).foregroundStyle(.secondary) }
+            }
+            Spacer()
+            KeyRecorderField(id: "window-\(command.rawValue)", combo: combo, placeholder: "Not set") {
+                store.set($0, for: command)
+            }
+            Button { RecordingCenter.shared.end(); store.set(nil, for: command) } label: {
+                Image(systemName: "xmark.circle")
+            }
+            .buttonStyle(.borderless).help("Remove this shortcut")
+            .opacity(combo == nil ? 0 : 1).disabled(combo == nil)
+        }
+    }
+}
+
+struct WindowCommandsView: View {
+    @State private var trusted = AXIsProcessTrusted()
+    private let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if store.needsAppRelaunch {
-                HStack(alignment: .top) {
-                    Image(systemName: "arrow.clockwise.circle.fill").foregroundStyle(.orange)
-                    Text("Window shortcuts take effect in apps opened from now on. Quit and reopen apps that are already running (macOS reads these shortcuts only at app launch).")
-                        .fixedSize(horizontal: false, vertical: true)
+            if !trusted {
+                HStack {
+                    Label("Accessibility permission required to move windows", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
                     Spacer()
-                    Button("Relaunch Finder") { store.relaunchFinder() }
-                    Button { store.needsAppRelaunch = false } label: { Image(systemName: "xmark") }
-                        .buttonStyle(.borderless)
+                    Button("Open Settings") { Permissions.openAccessibilitySettings() }
                 }
-                .font(.callout)
-                .padding(10)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.12)))
                 .padding(.horizontal, 16).padding(.top, 8)
             }
+            Form {
+                let sections = ["Halves", "Quarters", "Arrange", "General"]
+                ForEach(sections, id: \.self) { sec in
+                    Section(sec) {
+                        ForEach(WindowCommand.allCases.filter { $0.section == sec }) { WindowCommandRow(command: $0) }
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            Text("Global shortcuts: they work in every app (including ones without a Window menu) as soon as you set them. Keysy moves the front window itself. Nothing is assigned until you set it.")
+                .font(.caption).foregroundStyle(.secondary)
+                .padding(.horizontal, 16).padding(.bottom, 12)
+        }
+        .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }
+    }
+}
+
+struct SystemShortcutsView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
             Form {
                 ForEach(SystemFeature.Group.allCases) { group in
                     Section {
@@ -250,7 +288,7 @@ struct SystemShortcutsView: View {
                 }
             }
             .formStyle(.grouped)
-            Text("Click a shortcut and type new keys to change it in macOS itself (System Settings ▸ Keyboard ▸ Keyboard Shortcuts). “Default” = macOS's official shortcut; ↩︎ resets a row to it.")
+            Text("These are macOS's own system-wide shortcuts. Typing new keys changes them in macOS itself (same as System Settings ▸ Keyboard ▸ Keyboard Shortcuts). “Default” = macOS's official shortcut; ↩︎ resets a row to it.")
                 .font(.caption).foregroundStyle(.secondary)
                 .padding(.horizontal, 16).padding(.bottom, 12)
         }
@@ -291,6 +329,7 @@ struct SettingsView: View {
     var body: some View {
         TabView(selection: $tab) {
             RemapsView().tabItem { Label("Key Remaps", systemImage: "keyboard") }.tag("remaps")
+            WindowCommandsView().tabItem { Label("Window", systemImage: "macwindow") }.tag("window")
             SystemShortcutsView().tabItem { Label("macOS Shortcuts", systemImage: "apple.logo") }.tag("system")
             GeneralView().tabItem { Label("General", systemImage: "gearshape") }.tag("general")
         }

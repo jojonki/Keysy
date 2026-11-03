@@ -21,6 +21,7 @@ final class Remapper {
 
     private var tap: CFMachPort?
     private var table: [KeyCombo: KeyCombo] = [:]
+    private var windowTable: [KeyCombo: WindowCommand] = [:]
     /// Physical key code currently held → what we emitted for it (so key-up mirrors key-down).
     private var held: [Int: KeyCombo] = [:]
     private var retryTimer: Timer?
@@ -41,6 +42,7 @@ final class Remapper {
     func reload() {
         let store = RuleStore.shared
         table = store.enabled ? store.table : [:]
+        windowTable = WindowShortcutStore.shared.table
     }
 
     private func installTap() {
@@ -90,6 +92,10 @@ final class Remapper {
 
         let combo = KeyCombo.normalized(keyCode: code, flags: event.flags.rawValue)
         let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+        if let cmd = windowTable[combo] {
+            if !isRepeat { DispatchQueue.main.async { cmd.perform() } }
+            return nil   // swallow (key-up of a plain key without a held entry passes, which is harmless)
+        }
         guard let target = table[combo] ?? (isRepeat ? held[code] : nil) else {
             return Unmanaged.passUnretained(event)
         }

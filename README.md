@@ -4,7 +4,7 @@
 
 <h1 align="center">Keysy</h1>
 
-<p align="center">A tiny macOS menu bar app that remaps key combinations — and lets you change macOS's own shortcuts (window tiling, screenshots, input sources) to keys you like.</p>
+<p align="center">A tiny macOS menu bar app: remap keys, move windows with global shortcuts, and change macOS's own shortcuts (screenshots, input sources).</p>
 
 <p align="center">
   <a href="https://github.com/jojonki/Keysy/releases/latest"><img src="https://img.shields.io/github/v/release/jojonki/Keysy" alt="Latest release"></a>
@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot.png" width="640" alt="Keysy's macOS Shortcuts tab listing window tiling commands and their shortcuts">
+  <img src="docs/screenshot.png" width="640" alt="Keysy settings">
 </p>
 
 ## Features
@@ -25,34 +25,33 @@
 - Example: ⌘9 → ⌃⇧⇥ (previous tab), ⌘0 → ⌃⇥ (next tab)
 - Starts empty; nothing is remapped until you add it
 
+### Window
+Global shortcuts that move the front window — in **every app** (including ones without a Window menu),
+effective immediately. Nothing is assigned until you set it.
+
+| Section  | Commands |
+|----------|----------|
+| Halves   | Left, Right, Top, Bottom |
+| Quarters | Top Left, Top Right, Bottom Left, Bottom Right |
+| Arrange  | Left & Right, Right & Left, Top & Bottom, Bottom & Top (front window + the one behind it) |
+| General  | Fill Screen, Center, Restore Previous Size |
+
+Keysy moves the window itself through the Accessibility API.
+
+> **Replacing Snappy:** set Left Half → ⌃⌘←, Right Half → ⌃⌘→, Fill Screen → ⌃⌘↑, then quit
+> [Snappy](https://github.com/jojonki/Snappy).
+
 ### macOS Shortcuts
-Change the shortcut of macOS built-in features — only the ones you pick:
+Change macOS's own system-wide shortcuts — only the ones you pick:
 
 | Group          | Features |
 |----------------|----------|
-| Window         | Fill, Center, Left, Right, Top, Bottom, Left & Right, Right & Left, Top & Bottom, Bottom & Top, … & Quarters, Return to Previous Size |
 | Screenshots    | Save/copy screen, save/copy selected area, Screenshot & recording options |
 | Input Sources  | Select previous / next input source |
 
-Keysy doesn't imitate these features; it writes your shortcut into **macOS's own settings**,
-the same place System Settings ▸ Keyboard ▸ Keyboard Shortcuts uses:
-
-- Window commands → *App Shortcuts* (All Applications), registered by full menu path
-  (Window ▸ Move & Resize ▸ Left) in your language (from AppKit's localization) plus English,
-  so unrelated items with the same title are untouched
-- Screenshots / Input Sources → the system keyboard-shortcut settings
-
-Each row shows macOS's official shortcut and a **Default / Custom / Off** badge;
-↩︎ resets that row to the official shortcut.
-
-**Window commands apply to apps launched after the change** — macOS reads App Shortcuts only when an
-app starts, so quit and reopen apps that were already running (Keysy offers to relaunch Finder).
-They only work in apps that have the standard **Window ▸ Move & Resize** menu (most Mac apps do;
-some cross-platform apps don't).
-Because the settings live in macOS, they keep working even when Keysy isn't running.
-
-> **Replacing Snappy:** set *Left* → ⌃⌘←, *Right* → ⌃⌘→, *Fill* → ⌃⌘↑ in the Window group,
-> then quit [Snappy](https://github.com/jojonki/Snappy).
+Keysy writes your shortcut into macOS's settings (the same place System Settings ▸ Keyboard ▸
+Keyboard Shortcuts uses), so they work even when Keysy isn't running. Each row shows macOS's
+official shortcut with a **Default / Custom / Off** badge; ↩︎ resets that row to the official one.
 
 ### Also
 - Launch at login, automatic update check from GitHub Releases
@@ -62,7 +61,7 @@ Because the settings live in macOS, they keep working even when Keysy isn't runn
 
 Download `Keysy.dmg` from [Releases](https://github.com/jojonki/Keysy/releases), drag Keysy to Applications,
 then grant **Accessibility** permission when prompted
-(System Settings → Privacy & Security → Accessibility). Key Remaps need it to read and send key events;
+(System Settings → Privacy & Security → Accessibility). Key Remaps and Window shortcuts need it;
 macOS Shortcuts don't.
 
 ## Build
