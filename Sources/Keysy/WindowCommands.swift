@@ -23,10 +23,10 @@ enum WindowCommand: String, CaseIterable, Identifiable, Codable {
         case .topRight: return "Top Right Quarter"
         case .bottomLeft: return "Bottom Left Quarter"
         case .bottomRight: return "Bottom Right Quarter"
-        case .leftRight: return "Left & Right (2 windows)"
-        case .rightLeft: return "Right & Left (2 windows)"
-        case .topBottom: return "Top & Bottom (2 windows)"
-        case .bottomTop: return "Bottom & Top (2 windows)"
+        case .leftRight: return "Left & Right"
+        case .rightLeft: return "Right & Left"
+        case .topBottom: return "Top & Bottom"
+        case .bottomTop: return "Bottom & Top"
         case .restore: return "Restore Previous Size"
         }
     }
@@ -38,17 +38,19 @@ enum WindowCommand: String, CaseIterable, Identifiable, Codable {
         case .topBottom: return "Front window top, the window behind it bottom"
         case .bottomTop: return "Front window bottom, the window behind it top"
         case .center: return "Keeps the size, moves to the middle"
-        case .restore: return "Undo the last Keysy move of this window"
+        case .restore: return "Puts the window back where it was before Keysy moved it"
         default: return nil
         }
     }
 
+    static let sections = ["Halves", "Quarters", "Two Windows", "Other"]
+
     var section: String {
         switch self {
-        case .fill, .center, .restore: return "General"
+        case .fill, .center, .restore: return "Other"
         case .left, .right, .top, .bottom: return "Halves"
         case .topLeft, .topRight, .bottomLeft, .bottomRight: return "Quarters"
-        case .leftRight, .rightLeft, .topBottom, .bottomTop: return "Arrange"
+        case .leftRight, .rightLeft, .topBottom, .bottomTop: return "Two Windows"
         }
     }
 

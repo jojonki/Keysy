@@ -42,7 +42,7 @@ final class Remapper {
     func reload() {
         let store = RuleStore.shared
         table = store.enabled ? store.table : [:]
-        windowTable = WindowShortcutStore.shared.table
+        windowTable = store.enabled ? WindowShortcutStore.shared.table : [:]
     }
 
     private func installTap() {

@@ -19,13 +19,15 @@
 
 ## Features
 
-### Key Remaps
-- **Any number of remaps** (key → key), each with its own on/off switch
+Every tab assigns a shortcut to something; the tab says what the shortcut does.
+
+### Shortcut → Keystrokes
+- **Any number of shortcuts** that type other keys, each with its own on/off switch
 - **Record by typing** — click a field and press the keys
 - Example: ⌘9 → ⌃⇧⇥ (previous tab), ⌘0 → ⌃⇥ (next tab)
 - Starts empty; nothing is remapped until you add it
 
-### Window
+### Shortcut → Window Layouts
 Global shortcuts that move the front window — in **every app** (including ones without a Window menu),
 effective immediately. Nothing is assigned until you set it.
 
@@ -41,7 +43,7 @@ Keysy moves the window itself through the Accessibility API.
 > **Replacing Snappy:** set Left Half → ⌃⌘←, Right Half → ⌃⌘→, Fill Screen → ⌃⌘↑, then quit
 > [Snappy](https://github.com/jojonki/Snappy).
 
-### macOS Shortcuts
+### Shortcut → macOS Features
 Change macOS's own system-wide shortcuts — only the ones you pick:
 
 | Group          | Features |
@@ -61,8 +63,8 @@ official shortcut with a **Default / Custom / Off** badge; ↩︎ resets that ro
 
 Download `Keysy.dmg` from [Releases](https://github.com/jojonki/Keysy/releases), drag Keysy to Applications,
 then grant **Accessibility** permission when prompted
-(System Settings → Privacy & Security → Accessibility). Key Remaps and Window shortcuts need it;
-macOS Shortcuts don't.
+(System Settings → Privacy & Security → Accessibility). Keystrokes and Window Layouts need it;
+macOS Features don't.
 
 ## Build
 

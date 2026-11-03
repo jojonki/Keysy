@@ -88,6 +88,57 @@ struct KeyRecorderField: View {
 
 // MARK: - Rules
 
+// MARK: - Shared pieces
+
+/// Title, one-line summary and where the setting lives — same layout on every tab.
+struct TabHeader: View {
+    enum Scope { case keysy, macOS }
+    let title: String
+    let summary: String
+    let scope: Scope?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(title).font(.title3.weight(.semibold))
+                switch scope {
+                case .keysy:
+                    Label("Handled by Keysy — works while Keysy is running", systemImage: "bolt.fill")
+                        .font(.caption).foregroundStyle(Color.accentColor)
+                case .macOS:
+                    Label("Saved in macOS — works even when Keysy is quit", systemImage: "apple.logo")
+                        .font(.caption).foregroundStyle(.secondary)
+                case nil:
+                    EmptyView()
+                }
+            }
+            Text(summary).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct AccessibilityBanner: View {
+    @State private var trusted = AXIsProcessTrusted()
+    private let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        Group {
+            if !trusted {
+                HStack {
+                    Label("Keysy needs Accessibility permission for this tab.", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Button("Open System Settings") { Permissions.openAccessibilitySettings() }
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.12)))
+            }
+        }
+        .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }
+    }
+}
+
 struct RuleRow: View {
     @Binding var rule: Rule
     let duplicate: Bool
@@ -96,20 +147,20 @@ struct RuleRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Toggle("", isOn: $rule.enabled).labelsHidden().toggleStyle(.checkbox)
-            KeyRecorderField(id: "\(rule.id)-from", combo: rule.from, placeholder: "Record trigger") {
+            KeyRecorderField(id: "\(rule.id)-from", combo: rule.from, placeholder: "Type keys") {
                 rule.from = $0
             }
             Image(systemName: "arrow.right").foregroundStyle(.secondary)
-            KeyRecorderField(id: "\(rule.id)-to", combo: rule.to, placeholder: "Record output") {
+            KeyRecorderField(id: "\(rule.id)-to", combo: rule.to, placeholder: "Type keys") {
                 rule.to = $0
             }
             if duplicate {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                    .help("Another enabled rule uses the same trigger; the first one wins.")
+                    .help("Another row uses the same shortcut; only the first one is used.")
             }
             Spacer(minLength: 0)
             Button(action: onDelete) { Image(systemName: "trash") }
-                .buttonStyle(.borderless).help("Delete this remap")
+                .buttonStyle(.borderless).help("Delete this row")
         }
         .opacity(rule.enabled ? 1 : 0.5)
     }
@@ -117,27 +168,20 @@ struct RuleRow: View {
 
 struct RemapsView: View {
     @ObservedObject var store = RuleStore.shared
-    @State private var trusted = AXIsProcessTrusted()
-    private let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            TabHeader(title: "Shortcut → Keystrokes",
+                      summary: "Press a shortcut, and Keysy types different keys instead (e.g. ⌘9 → ⌃⇧⇥).",
+                      scope: .keysy)
+            AccessibilityBanner()
             HStack {
-                Toggle("Enable key remapping", isOn: $store.enabled).toggleStyle(.switch)
-                Spacer()
-                if !trusted {
-                    Label("Accessibility permission required", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Button("Open Settings") { Permissions.openAccessibilitySettings() }
-                }
-            }
-            HStack {
-                Text("Trigger").frame(minWidth: 160, alignment: .leading).padding(.leading, 26)
-                Text("Output").padding(.leading, 30)
+                Text("Shortcut").frame(minWidth: 146, alignment: .leading).padding(.leading, 26)
+                Text("Keys to send").padding(.leading, 30)
             }
             .font(.caption).foregroundStyle(.secondary)
             if store.rules.isEmpty {
-                Text("No remaps yet. Click “Add Remap”, then type the trigger and output keys.")
+                Text("Nothing yet. Click Add, then click each field and type the keys.")
                     .foregroundStyle(.secondary).padding(.vertical, 12)
             }
             ScrollView {
@@ -153,14 +197,11 @@ struct RemapsView: View {
                 .padding(.vertical, 2)
             }
             HStack {
-                Button { store.addEmpty() } label: { Label("Add Remap", systemImage: "plus") }
+                Button { store.addEmpty() } label: { Label("Add", systemImage: "plus") }
                 Spacer()
             }
-            Text("Click a field and type the keys. Pressing the trigger sends the output keys instead.")
-                .font(.caption).foregroundStyle(.secondary)
         }
         .padding(16)
-        .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }
     }
 }
 
@@ -244,40 +285,34 @@ struct WindowCommandRow: View {
 }
 
 struct WindowCommandsView: View {
-    @State private var trusted = AXIsProcessTrusted()
-    private let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !trusted {
-                HStack {
-                    Label("Accessibility permission required to move windows", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Spacer()
-                    Button("Open Settings") { Permissions.openAccessibilitySettings() }
-                }
-                .padding(.horizontal, 16).padding(.top, 8)
+            VStack(alignment: .leading, spacing: 8) {
+                TabHeader(title: "Shortcut → Window Layouts",
+                          summary: "Press a shortcut to move the front window. Works in every app. Nothing is assigned until you set it.",
+                          scope: .keysy)
+                AccessibilityBanner()
             }
+            .padding([.horizontal, .top], 16)
             Form {
-                let sections = ["Halves", "Quarters", "Arrange", "General"]
-                ForEach(sections, id: \.self) { sec in
+                ForEach(WindowCommand.sections, id: \.self) { sec in
                     Section(sec) {
                         ForEach(WindowCommand.allCases.filter { $0.section == sec }) { WindowCommandRow(command: $0) }
                     }
                 }
             }
             .formStyle(.grouped)
-            Text("Global shortcuts: they work in every app (including ones without a Window menu) as soon as you set them. Keysy moves the front window itself. Nothing is assigned until you set it.")
-                .font(.caption).foregroundStyle(.secondary)
-                .padding(.horizontal, 16).padding(.bottom, 12)
         }
-        .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }
     }
 }
 
 struct SystemShortcutsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            TabHeader(title: "Shortcut → macOS Features",
+                      summary: "Choose the shortcut for a macOS feature. Your keys replace the macOS ones (same as System Settings ▸ Keyboard ▸ Keyboard Shortcuts). ↩︎ puts a row back to the macOS default.",
+                      scope: .macOS)
+                .padding([.horizontal, .top], 16)
             Form {
                 ForEach(SystemFeature.Group.allCases) { group in
                     Section {
@@ -288,9 +323,6 @@ struct SystemShortcutsView: View {
                 }
             }
             .formStyle(.grouped)
-            Text("These are macOS's own system-wide shortcuts. Typing new keys changes them in macOS itself (same as System Settings ▸ Keyboard ▸ Keyboard Shortcuts). “Default” = macOS's official shortcut; ↩︎ resets a row to it.")
-                .font(.caption).foregroundStyle(.secondary)
-                .padding(.horizontal, 16).padding(.bottom, 12)
         }
     }
 }
@@ -299,8 +331,14 @@ struct GeneralView: View {
     @State private var autoUpdate = Updater.autoCheckEnabled
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
+    @ObservedObject var rules = RuleStore.shared
+
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+        TabHeader(title: "Keysy Settings", summary: "Pause Keysy, start it at login, and keep it up to date.", scope: nil)
+            .padding([.horizontal, .top], 16)
         Form {
+            Toggle("Pause Keysy (Keystrokes and Window Layouts)", isOn: Binding(get: { !rules.enabled }, set: { rules.enabled = !$0 }))
             Toggle("Launch at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, on in
                     do { on ? try SMAppService.mainApp.register() : try SMAppService.mainApp.unregister() }
@@ -320,6 +358,7 @@ struct GeneralView: View {
             }
         }
         .formStyle(.grouped)
+        }
     }
 }
 
@@ -328,10 +367,10 @@ struct SettingsView: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            RemapsView().tabItem { Label("Key Remaps", systemImage: "keyboard") }.tag("remaps")
-            WindowCommandsView().tabItem { Label("Window", systemImage: "macwindow") }.tag("window")
-            SystemShortcutsView().tabItem { Label("macOS Shortcuts", systemImage: "apple.logo") }.tag("system")
-            GeneralView().tabItem { Label("General", systemImage: "gearshape") }.tag("general")
+            RemapsView().tabItem { Label("Keystrokes", systemImage: "keyboard") }.tag("remaps")
+            WindowCommandsView().tabItem { Label("Window Layouts", systemImage: "macwindow") }.tag("window")
+            SystemShortcutsView().tabItem { Label("macOS Features", systemImage: "apple.logo") }.tag("system")
+            GeneralView().tabItem { Label("Keysy Settings", systemImage: "gearshape") }.tag("general")
         }
         .padding(12)
         .frame(minWidth: 620, minHeight: 520)

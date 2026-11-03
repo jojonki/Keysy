@@ -52,24 +52,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let store = RuleStore.shared
-        let toggle = NSMenuItem(title: "Enable Keysy", action: #selector(toggleEnabled), keyEquivalent: "")
-        toggle.target = self; toggle.state = store.enabled ? .on : .off
-        menu.addItem(toggle)
+        let pause = NSMenuItem(title: "Pause Keysy", action: #selector(toggleEnabled), keyEquivalent: "")
+        pause.target = self; pause.state = store.enabled ? .off : .on
+        menu.addItem(pause)
         if !AXIsProcessTrusted() {
             let warn = NSMenuItem(title: "⚠︎ Grant Accessibility Permission…", action: #selector(openAX), keyEquivalent: "")
             warn.target = self; menu.addItem(warn)
         }
-        menu.addItem(.separator())
-        let active = store.rules.filter { $0.enabled && $0.isComplete }
-        if active.isEmpty {
-            menu.addItem(withTitle: "No active remaps", action: nil, keyEquivalent: "").isEnabled = false
-        } else {
-            for r in active.prefix(30) {
-                let item = NSMenuItem(title: "\(r.from!.display)  →  \(r.to!.display)", action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                menu.addItem(item)
-            }
+        func header(_ t: String) {
+            menu.addItem(.separator())
+            let h = NSMenuItem(title: t, action: nil, keyEquivalent: ""); h.isEnabled = false
+            h.attributedTitle = NSAttributedString(string: t, attributes: [.font: NSFont.boldSystemFont(ofSize: 12)])
+            menu.addItem(h)
         }
+        func line(_ t: String) {
+            let i = NSMenuItem(title: t, action: nil, keyEquivalent: ""); i.isEnabled = false; menu.addItem(i)
+        }
+        header("Shortcut → Keystrokes")
+        let remaps = store.rules.filter { $0.enabled && $0.isComplete }
+        if remaps.isEmpty { line("None") }
+        for r in remaps.prefix(20) { line("\(r.from!.display)  →  \(r.to!.display)") }
+        header("Shortcut → Window Layouts")
+        let wins = WindowCommand.allCases.compactMap { c in WindowShortcutStore.shared.shortcuts[c].map { (c, $0) } }
+        if wins.isEmpty { line("None") }
+        for (c, k) in wins { line("\(k.display)  →  \(c.title)") }
         menu.addItem(.separator())
         add(menu, "Settings…", #selector(openSettings), key: ",")
         add(menu, "Check for Updates…", #selector(checkUpdates))
