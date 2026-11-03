@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot.png" width="640" alt="Keysy settings">
+  <img src="docs/screenshot.png" width="640" alt="Keysy settings — macOS Features">
 </p>
 
 ## Features
@@ -22,6 +22,9 @@
 The sidebar has two groups: **Shortcuts** (by what the shortcut does) and **Keysy** (app settings).
 
 ### Shortcuts ▸ Custom Shortcuts
+
+<img src="docs/screenshot-custom-shortcuts.png" width="560" alt="Custom Shortcuts">
+
 - **Any number of shortcuts** that type other keys, each with its own on/off switch
 - **Record by typing** — click a field and press the keys, or **pick from a list** (⌄ button) for keys your
   keyboard doesn't have (F13–F20, Home/End, keypad, JIS/ISO keys…) or that macOS grabs first
@@ -29,6 +32,9 @@ The sidebar has two groups: **Shortcuts** (by what the shortcut does) and **Keys
 - Starts empty; nothing is remapped until you add it
 
 ### Shortcuts ▸ Window Layouts
+
+<img src="docs/screenshot-window-layouts.png" width="560" alt="Window Layouts">
+
 Global shortcuts that move the front window — in **every app** (including ones without a Window menu),
 effective immediately. Nothing is assigned until you set it.
 
