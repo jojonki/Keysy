@@ -74,7 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         // Counts only: lists would grow without bound as shortcuts are added.
         menu.addItem(.separator())
-        let shortcutsHeader = NSMenuItem(title: "Shortcut →", action: nil, keyEquivalent: ""); shortcutsHeader.isEnabled = false
+        let shortcutsHeader = NSMenuItem(title: "Shortcuts", action: nil, keyEquivalent: ""); shortcutsHeader.isEnabled = false
         menu.addItem(shortcutsHeader)
         let custom = store.rules.filter { $0.enabled && $0.isComplete }.count
         let windows = WindowShortcutStore.shared.shortcuts.count

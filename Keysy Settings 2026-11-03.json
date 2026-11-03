@@ -1,0 +1,55 @@
+{
+  "appVersion" : "0.1.0",
+  "customShortcuts" : [
+    {
+      "enabled" : true,
+      "from" : {
+        "keyCode" : 25,
+        "modifiers" : 1048576
+      },
+      "id" : "D4A84C09-0066-480B-8C04-2F2744CED776",
+      "to" : {
+        "keyCode" : 48,
+        "modifiers" : 393216
+      }
+    },
+    {
+      "enabled" : true,
+      "from" : {
+        "keyCode" : 29,
+        "modifiers" : 1048576
+      },
+      "id" : "645C923A-B32C-4718-99D0-A4BFB16A4698",
+      "to" : {
+        "keyCode" : 48,
+        "modifiers" : 262144
+      }
+    }
+  ],
+  "exportedAt" : "2026-11-03T10:35:05Z",
+  "format" : "keysy-settings",
+  "macOSFeatures" : {
+    "hotkey:28" : "off",
+    "hotkey:29" : "off",
+    "hotkey:30" : "off",
+    "hotkey:31" : {
+      "keyCode" : 18,
+      "modifiers" : 1310720
+    }
+  },
+  "version" : 1,
+  "windowLayouts" : {
+    "fill" : {
+      "keyCode" : 126,
+      "modifiers" : 1310720
+    },
+    "left" : {
+      "keyCode" : 123,
+      "modifiers" : 1310720
+    },
+    "right" : {
+      "keyCode" : 124,
+      "modifiers" : 1310720
+    }
+  }
+}

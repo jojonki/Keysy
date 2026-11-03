@@ -19,15 +19,15 @@
 
 ## Features
 
-The sidebar groups everything under **Shortcut →** by what the shortcut does, plus **Keysy ▸ Startup & Updates**.
+The sidebar has two groups: **Shortcuts** (by what the shortcut does) and **Keysy** (app settings).
 
-### Shortcut → Custom Shortcuts
+### Shortcuts ▸ Custom Shortcuts
 - **Any number of shortcuts** that type other keys, each with its own on/off switch
 - **Record by typing** — click a field and press the keys
 - Example: ⌘9 → ⌃⇧⇥ (previous tab), ⌘0 → ⌃⇥ (next tab)
 - Starts empty; nothing is remapped until you add it
 
-### Shortcut → Window Layouts
+### Shortcuts ▸ Window Layouts
 Global shortcuts that move the front window — in **every app** (including ones without a Window menu),
 effective immediately. Nothing is assigned until you set it.
 
@@ -43,7 +43,7 @@ Keysy moves the window itself through the Accessibility API.
 > **Replacing Snappy:** set Left Half → ⌃⌘←, Right Half → ⌃⌘→, Fill Screen → ⌃⌘↑, then quit
 > [Snappy](https://github.com/jojonki/Snappy).
 
-### Shortcut → macOS Features
+### Shortcuts ▸ macOS Features
 Change macOS's own system-wide shortcuts — only the ones you pick:
 
 | Group          | Features |

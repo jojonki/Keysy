@@ -440,7 +440,7 @@ struct SettingsView: View {
         NavigationSplitView {
             List(selection: selection) {
                 // Plain header rows (not Section headers), so the groups can't be collapsed.
-                SidebarHeader(title: "Shortcut →")
+                SidebarHeader(title: "Shortcuts")
                 ForEach(SettingsPage.shortcutPages) { p in Label(p.title, systemImage: p.symbol).tag(p) }
                 SidebarHeader(title: "Keysy").padding(.top, 10)
                 ForEach([SettingsPage.startup, .transfer]) { p in Label(p.title, systemImage: p.symbol).tag(p) }
