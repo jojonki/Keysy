@@ -81,7 +81,7 @@ NOTARY_PROFILE=<profile> ./build.sh   # also notarize
 ```
 
 The app icon is generated from `Resources/icon.png`.
-Releases are published as `vX.Y.Z` tags with `Keysy.zip` attached; the in-app updater installs that zip.
+Releases: `./release.sh X.Y.Z` (Developer ID signed + notarized). See [RELEASING.md](RELEASING.md).
 
 ## Support
 
