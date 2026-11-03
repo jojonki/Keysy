@@ -19,9 +19,9 @@
 
 ## Features
 
-Every tab assigns a shortcut to something; the tab says what the shortcut does.
+The sidebar groups everything under **Shortcut →** by what the shortcut does, plus **Keysy ▸ Startup & Updates**.
 
-### Shortcut → Keystrokes
+### Shortcut → Other Shortcuts
 - **Any number of shortcuts** that type other keys, each with its own on/off switch
 - **Record by typing** — click a field and press the keys
 - Example: ⌘9 → ⌃⇧⇥ (previous tab), ⌘0 → ⌃⇥ (next tab)
@@ -63,7 +63,7 @@ official shortcut with a **Default / Custom / Off** badge; ↩︎ resets that ro
 
 Download `Keysy.dmg` from [Releases](https://github.com/jojonki/Keysy/releases), drag Keysy to Applications,
 then grant **Accessibility** permission when prompted
-(System Settings → Privacy & Security → Accessibility). Keystrokes and Window Layouts need it;
+(System Settings → Privacy & Security → Accessibility). Other Shortcuts and Window Layouts need it;
 macOS Features don't.
 
 ## Build

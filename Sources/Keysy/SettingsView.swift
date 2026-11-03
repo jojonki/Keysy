@@ -171,13 +171,13 @@ struct RemapsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TabHeader(title: "Shortcut → Keystrokes",
-                      summary: "Press a shortcut, and Keysy types different keys instead (e.g. ⌘9 → ⌃⇧⇥).",
+            TabHeader(title: "Other Shortcuts",
+                      summary: "Press a shortcut, and Keysy sends a different shortcut instead (e.g. ⌘9 → ⌃⇧⇥).",
                       scope: .keysy)
             AccessibilityBanner()
             HStack {
                 Text("Shortcut").frame(minWidth: 146, alignment: .leading).padding(.leading, 26)
-                Text("Keys to send").padding(.leading, 30)
+                Text("Sends").padding(.leading, 30)
             }
             .font(.caption).foregroundStyle(.secondary)
             if store.rules.isEmpty {
@@ -288,7 +288,7 @@ struct WindowCommandsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
-                TabHeader(title: "Shortcut → Window Layouts",
+                TabHeader(title: "Window Layouts",
                           summary: "Press a shortcut to move the front window. Works in every app. Nothing is assigned until you set it.",
                           scope: .keysy)
                 AccessibilityBanner()
@@ -309,7 +309,7 @@ struct WindowCommandsView: View {
 struct SystemShortcutsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TabHeader(title: "Shortcut → macOS Features",
+            TabHeader(title: "macOS Features",
                       summary: "Choose the shortcut for a macOS feature. Your keys replace the macOS ones (same as System Settings ▸ Keyboard ▸ Keyboard Shortcuts). ↩︎ puts a row back to the macOS default.",
                       scope: .macOS)
                 .padding([.horizontal, .top], 16)
@@ -335,10 +335,9 @@ struct GeneralView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-        TabHeader(title: "Keysy Settings", summary: "Pause Keysy, start it at login, and keep it up to date.", scope: nil)
+        TabHeader(title: "Startup & Updates", summary: "Start Keysy at login and keep it up to date.", scope: nil)
             .padding([.horizontal, .top], 16)
         Form {
-            Toggle("Pause Keysy (Keystrokes and Window Layouts)", isOn: Binding(get: { !rules.enabled }, set: { rules.enabled = !$0 }))
             Toggle("Launch at login", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, on in
                     do { on ? try SMAppService.mainApp.register() : try SMAppService.mainApp.unregister() }
@@ -362,18 +361,70 @@ struct GeneralView: View {
     }
 }
 
+enum SettingsPage: String, CaseIterable, Identifiable {
+    case otherShortcuts, windowLayouts, macOSFeatures, startup
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .otherShortcuts: return "Other Shortcuts"
+        case .windowLayouts: return "Window Layouts"
+        case .macOSFeatures: return "macOS Features"
+        case .startup: return "Startup & Updates"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .otherShortcuts: return "keyboard"
+        case .windowLayouts: return "macwindow"
+        case .macOSFeatures: return "apple.logo"
+        case .startup: return "gearshape"
+        }
+    }
+    static let shortcutPages: [SettingsPage] = [.otherShortcuts, .windowLayouts, .macOSFeatures]
+}
+
 struct SettingsView: View {
-    @AppStorage("settingsTab") private var tab = "remaps"
+    @AppStorage("settingsPage") private var page = SettingsPage.otherShortcuts.rawValue
+    @ObservedObject private var rules = RuleStore.shared
+
+    private var selection: Binding<SettingsPage?> {
+        Binding(get: { SettingsPage(rawValue: page) ?? .otherShortcuts }, set: { if let p = $0 { page = p.rawValue } })
+    }
 
     var body: some View {
-        TabView(selection: $tab) {
-            RemapsView().tabItem { Label("Keystrokes", systemImage: "keyboard") }.tag("remaps")
-            WindowCommandsView().tabItem { Label("Window Layouts", systemImage: "macwindow") }.tag("window")
-            SystemShortcutsView().tabItem { Label("macOS Features", systemImage: "apple.logo") }.tag("system")
-            GeneralView().tabItem { Label("Keysy Settings", systemImage: "gearshape") }.tag("general")
+        NavigationSplitView {
+            List(selection: selection) {
+                Section("Shortcut →") {
+                    ForEach(SettingsPage.shortcutPages) { p in Label(p.title, systemImage: p.symbol).tag(p) }
+                }
+                Section("Keysy") {
+                    Label(SettingsPage.startup.title, systemImage: SettingsPage.startup.symbol).tag(SettingsPage.startup)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Divider()
+                    Toggle("Pause Keysy", isOn: Binding(get: { !rules.enabled }, set: { rules.enabled = !$0 }))
+                        .toggleStyle(.switch).controlSize(.small)
+                        .help("Stops Other Shortcuts and Window Layouts. macOS Features keep working (they live in macOS).")
+                        .padding(.horizontal, 12).padding(.bottom, 10).padding(.top, 4)
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 260)
+        } detail: {
+            Group {
+                switch SettingsPage(rawValue: page) ?? .otherShortcuts {
+                case .otherShortcuts: RemapsView()
+                case .windowLayouts: WindowCommandsView()
+                case .macOSFeatures: SystemShortcutsView()
+                case .startup: GeneralView()
+                }
+            }
+            // Fill the window; long lists scroll instead of stretching the layout.
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(12)
-        .frame(minWidth: 620, minHeight: 520)
+        .frame(minWidth: 820, minHeight: 560)
+        .onChange(of: page) { _, _ in RecordingCenter.shared.end() }
         .onDisappear { RecordingCenter.shared.end() }
     }
 }
@@ -386,11 +437,16 @@ enum Permissions {
 
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     init() {
-        let host = NSHostingController(rootView: SettingsView())
-        let win = NSWindow(contentViewController: host)
+        let hosting = NSHostingView(rootView: SettingsView())
+        hosting.sizingOptions = []   // fixed window size; lists scroll instead of growing the window
+        let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 860, height: 600),
+                           styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                           backing: .buffered, defer: false)
         win.title = "Keysy Settings"
-        win.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        win.setContentSize(NSSize(width: 640, height: 560))
+        win.toolbarStyle = .unified
+        win.toolbar = NSToolbar(identifier: "KeysySettings")   // sidebar layout expects a toolbar area
+        win.contentView = hosting
+        win.contentMinSize = NSSize(width: 820, height: 520)
         super.init(window: win)
         win.delegate = self
         win.center()
