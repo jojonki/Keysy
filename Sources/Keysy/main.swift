@@ -79,17 +79,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let custom = store.rules.filter { $0.enabled && $0.isComplete }.count
         let windows = WindowShortcutStore.shared.shortcuts.count
         let mac = SystemShortcutStore.shared.exportSettings().count
-        add(menu, "Custom Shortcuts — \(custom)", #selector(openPage(_:)), page: .otherShortcuts)
-        add(menu, "Window Layouts — \(windows)", #selector(openPage(_:)), page: .windowLayouts)
-        add(menu, "macOS Features — \(mac) changed", #selector(openPage(_:)), page: .macOSFeatures)
+        add(menu, "Custom Shortcuts: \(custom) in use", #selector(openPage(_:)), page: .otherShortcuts)
+        add(menu, "Window Layouts: \(windows) in use", #selector(openPage(_:)), page: .windowLayouts)
+        add(menu, "macOS Features: \(mac) changed from default", #selector(openPage(_:)), page: .macOSFeatures)
         menu.addItem(.separator())
-        add(menu, "Settings…", #selector(openSettings), key: ",")
+        add(menu, "Settings…", #selector(openSettings))
         add(menu, "Check for Updates…", #selector(checkUpdates))
         menu.addItem(.separator())
         add(menu, "Keysy on GitHub", #selector(openURL(_:)), url: Links.repository)
         add(menu, "Support the Developer ♥", #selector(openURL(_:)), url: Links.sponsor)
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Keysy", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Keysy", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
     }
 
     private func add(_ menu: NSMenu, _ title: String, _ sel: Selector, key: String = "", url: URL? = nil,

@@ -418,6 +418,16 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     static let shortcutPages: [SettingsPage] = [.otherShortcuts, .windowLayouts, .macOSFeatures]
 }
 
+struct SidebarHeader: View {
+    let title: String
+    var body: some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+            .selectionDisabled()
+            .allowsHitTesting(false)
+    }
+}
+
 struct SettingsView: View {
     @AppStorage("settingsPage") private var page = SettingsPage.otherShortcuts.rawValue
     @ObservedObject private var rules = RuleStore.shared
@@ -429,14 +439,11 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: selection) {
-                Section("Shortcut →") {
-                    ForEach(SettingsPage.shortcutPages) { p in Label(p.title, systemImage: p.symbol).tag(p) }
-                }
-                .collapsible(false)
-                Section("Keysy") {
-                    ForEach([SettingsPage.startup, .transfer]) { p in Label(p.title, systemImage: p.symbol).tag(p) }
-                }
-                .collapsible(false)
+                // Plain header rows (not Section headers), so the groups can't be collapsed.
+                SidebarHeader(title: "Shortcut →")
+                ForEach(SettingsPage.shortcutPages) { p in Label(p.title, systemImage: p.symbol).tag(p) }
+                SidebarHeader(title: "Keysy").padding(.top, 10)
+                ForEach([SettingsPage.startup, .transfer]) { p in Label(p.title, systemImage: p.symbol).tag(p) }
             }
             .safeAreaInset(edge: .bottom) {
                 VStack(alignment: .leading, spacing: 4) {
