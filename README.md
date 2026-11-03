@@ -4,7 +4,7 @@
 
 <h1 align="center">Keysy</h1>
 
-<p align="center">A tiny macOS menu bar app that remaps key combinations — and drives macOS's built-in window tiling from any shortcut you like.</p>
+<p align="center">A tiny macOS menu bar app that remaps key combinations — and lets you change macOS's own shortcuts (window tiling, screenshots, input sources) to keys you like.</p>
 
 <p align="center">
   <a href="https://github.com/jojonki/Keysy/releases/latest"><img src="https://img.shields.io/github/v/release/jojonki/Keysy" alt="Latest release"></a>
@@ -14,56 +14,50 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot.png" width="640" alt="Keysy settings window with several key remaps">
+  <img src="docs/screenshot.png" width="640" alt="Keysy's macOS Shortcuts tab listing window tiling commands and their shortcuts">
 </p>
 
 ## Features
 
-- **Any number of remaps** — add as many as you want, enable/disable each one
-- **Record by typing** — click a field and press the keys; no key lists to scroll through
-- **Window tiling without a window manager** — map any shortcut to macOS's own
-  *Window ▸ Move & Resize* commands (Left, Right, Fill, Center, Quarters, …)
-- Global on/off switch from the menu bar, launch at login
-- Automatic update check from GitHub Releases
-- Quick links to this repository and to sponsorship from the menu
+### Key Remaps
+- **Any number of remaps** (key → key), each with its own on/off switch
+- **Record by typing** — click a field and press the keys
+- Example: ⌘9 → ⌃⇧⇥ (previous tab), ⌘0 → ⌃⇥ (next tab)
+- Starts empty; nothing is remapped until you add it
 
-## Examples
+### macOS Shortcuts
+Change the shortcut of macOS built-in features — only the ones you pick:
 
-| Trigger | Output                     | What for                               |
-|---------|----------------------------|----------------------------------------|
-| ⌘9      | ⌃⇧⇥                        | Previous tab                           |
-| ⌘0      | ⌃⇥                         | Next tab                               |
-| ⌃⌘←     | 🪟 Left Half (window action) | Tile window to the left half         |
-| ⌃⌘→     | 🪟 Right Half (window action)| Tile window to the right half        |
-| ⌃⌘↑     | 🪟 Fill Screen (window action)| Fill the screen                     |
+| Group          | Features |
+|----------------|----------|
+| Window         | Fill, Center, Left, Right, Top, Bottom, Left & Right, Right & Left, Top & Bottom, Bottom & Top, … & Quarters, Return to Previous Size |
+| Screenshots    | Save/copy screen, save/copy selected area, Screenshot & recording options |
+| Input Sources  | Select previous / next input source |
 
-Keysy starts with no remaps — these are just ideas. Window actions are not keys; they run a
-macOS window command (picked from the `⋯` menu next to the output field).
+Keysy doesn't imitate these features; it writes your shortcut into **macOS's own settings**,
+the same place System Settings ▸ Keyboard ▸ Keyboard Shortcuts uses:
 
-### Replacing Snappy
+- Window commands → *App Shortcuts* (All Applications), using the menu titles in your language
+  (taken from AppKit's localization) plus English
+- Screenshots / Input Sources → the system keyboard-shortcut settings
 
-macOS 15+ ships window tiling (🌐⌃← / → / F …). Keysy maps your own shortcuts to those
-commands, so the window examples above (or **Add Window Tiling Presets**) reproduce [Snappy](https://github.com/jojonki/Snappy)'s
-⌃⌘← / ⌃⌘→ / ⌃⌘↑ behaviour. Quit Snappy (or clear its shortcuts) to avoid both apps reacting.
+Grey shortcuts show the current macOS setting, untouched. ↩︎ restores exactly what macOS had before.
+Window command changes apply to apps launched after the change.
+Because the settings live in macOS, they keep working even when Keysy isn't running.
 
-Window actions press the frontmost app's *Window ▸ Move & Resize* menu item through
-Accessibility (matched by its shortcut, so any UI language works). Apps without that menu
-receive the 🌐⌃ shortcut keystroke instead.
+> **Replacing Snappy:** set *Left* → ⌃⌘←, *Right* → ⌃⌘→, *Fill* → ⌃⌘↑ in the Window group,
+> then quit [Snappy](https://github.com/jojonki/Snappy).
 
-## Usage
-
-1. Open **Settings…** from the keyboard icon in the menu bar.
-2. Click **Add Remap**, click the *Trigger* field and type the keys you want to press.
-3. Click the *Output* field and type the keys Keysy should send — or pick a
-   **macOS Window Tiling** action from the `⋯` menu.
-
-Press **Esc** while recording to cancel. Shortcuts the system grabs first (e.g. ⌘⇥) can't be recorded.
+### Also
+- Launch at login, automatic update check from GitHub Releases
+- Links to this repository and to sponsorship from the menu
 
 ## Install
 
 Download `Keysy.dmg` from [Releases](https://github.com/jojonki/Keysy/releases), drag Keysy to Applications,
 then grant **Accessibility** permission when prompted
-(System Settings → Privacy & Security → Accessibility). Keysy needs it to read and send key events.
+(System Settings → Privacy & Security → Accessibility). Key Remaps need it to read and send key events;
+macOS Shortcuts don't.
 
 ## Build
 

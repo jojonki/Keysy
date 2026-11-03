@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { Updater.shared.checkIfDue() }
         #if DEBUG
         if let path = ProcessInfo.processInfo.environment["KEYSY_SNAPSHOT"] { snapshotSettings(to: path) }
+        if ProcessInfo.processInfo.environment["KEYSY_SELFTEST"] != nil { SystemShortcutStore.selfTest(); exit(0) }
         #endif
     }
 
@@ -65,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(withTitle: "No active remaps", action: nil, keyEquivalent: "").isEnabled = false
         } else {
             for r in active.prefix(30) {
-                let item = NSMenuItem(title: "\(r.from!.display)  →  \(r.to!.menuDisplay)", action: nil, keyEquivalent: "")
+                let item = NSMenuItem(title: "\(r.from!.display)  →  \(r.to!.display)", action: nil, keyEquivalent: "")
                 item.isEnabled = false
                 menu.addItem(item)
             }

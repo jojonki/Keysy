@@ -74,7 +74,12 @@ struct KeyCombo: Codable, Hashable {
 
     static func keyName(_ code: Int) -> String {
         if let s = specialKeyNames[code] { return s }
-        // Translate through the current keyboard layout.
+        if let c = character(code), !c.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return c.uppercased() }
+        return "Key\(code)"
+    }
+
+    /// The unmodified character this key types in the current ASCII-capable layout (e.g. "a", "3").
+    static func character(_ code: Int) -> String? {
         if let src = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue(),
            let ptr = TISGetInputSourceProperty(src, kTISPropertyUnicodeKeyLayoutData) {
             let data = Unmanaged<CFData>.fromOpaque(ptr).takeUnretainedValue() as Data
@@ -87,11 +92,8 @@ struct KeyCombo: Codable, Hashable {
                                       UInt32(LMGetKbdType()), OptionBits(kUCKeyTranslateNoDeadKeysBit),
                                       &dead, 4, &len, &chars) == noErr
             }
-            if ok, len > 0 {
-                let s = String(utf16CodeUnits: chars, count: len).uppercased()
-                if !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return s }
-            }
+            if ok, len > 0 { return String(utf16CodeUnits: chars, count: len) }
         }
-        return "Key\(code)"
+        return nil
     }
 }

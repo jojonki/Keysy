@@ -13,11 +13,6 @@ enum KeySender {
         if autorepeat { e.setIntegerValueField(.keyboardEventAutorepeat, value: 1) }
         e.post(tap: .cghidEventTap)
     }
-
-    static func tap(_ combo: KeyCombo) {
-        post(combo, down: true)
-        post(combo, down: false)
-    }
 }
 
 /// Global keyboard remapper built on a CGEventTap (requires Accessibility permission).
@@ -25,9 +20,9 @@ final class Remapper {
     static let shared = Remapper()
 
     private var tap: CFMachPort?
-    private var table: [KeyCombo: RemapTarget] = [:]
+    private var table: [KeyCombo: KeyCombo] = [:]
     /// Physical key code currently held → what we emitted for it (so key-up mirrors key-down).
-    private var held: [Int: RemapTarget] = [:]
+    private var held: [Int: KeyCombo] = [:]
     private var retryTimer: Timer?
 
     /// Temporarily pass every event through (e.g. while recording a shortcut).
@@ -89,7 +84,7 @@ final class Remapper {
 
         if type == .keyUp {
             guard let target = held.removeValue(forKey: code) else { return Unmanaged.passUnretained(event) }
-            if case .keys(let combo) = target { KeySender.post(combo, down: false) }
+            KeySender.post(target, down: false)
             return nil
         }
 
@@ -99,12 +94,7 @@ final class Remapper {
             return Unmanaged.passUnretained(event)
         }
         held[code] = target
-        switch target {
-        case .keys(let out):
-            KeySender.post(out, down: true, autorepeat: isRepeat)
-        case .window(let action):
-            if !isRepeat { action.perform() }
-        }
+        KeySender.post(target, down: true, autorepeat: isRepeat)
         return nil
     }
 }

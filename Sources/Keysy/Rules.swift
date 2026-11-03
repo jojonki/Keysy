@@ -1,31 +1,11 @@
 import AppKit
-import Carbon.HIToolbox
 import Combine
-
-/// What a remap produces.
-enum RemapTarget: Codable, Hashable {
-    case keys(KeyCombo)
-    case window(WindowAction)
-
-    var display: String {
-        switch self {
-        case .keys(let k): return k.display
-        case .window(let w): return w.display
-        }
-    }
-
-    /// Text-only form for menus, marking window actions so they don't read as key names.
-    var menuDisplay: String {
-        if case .window(let w) = self { return "🪟 " + w.display }
-        return display
-    }
-}
 
 struct Rule: Codable, Identifiable, Hashable {
     var id = UUID()
     var enabled = true
     var from: KeyCombo?
-    var to: RemapTarget?
+    var to: KeyCombo?
 
     var isComplete: Bool { from != nil && to != nil }
 }
@@ -64,8 +44,8 @@ final class RuleStore: ObservableObject {
     }
 
     /// Active lookup table: first enabled, complete rule wins for each trigger.
-    var table: [KeyCombo: RemapTarget] {
-        var t: [KeyCombo: RemapTarget] = [:]
+    var table: [KeyCombo: KeyCombo] {
+        var t: [KeyCombo: KeyCombo] = [:]
         for r in rules where r.enabled {
             guard let f = r.from, let to = r.to, t[f] == nil else { continue }
             t[f] = to
@@ -81,17 +61,6 @@ final class RuleStore: ObservableObject {
     }
 
     func addEmpty() { rules.append(Rule()) }
-
-    func addWindowPresets() {
-        let ctrlCmd = CGEventFlags.maskControl.rawValue | CGEventFlags.maskCommand.rawValue
-        let presets: [(Int, WindowAction)] = [(kVK_LeftArrow, .left), (kVK_RightArrow, .right),
-                                              (kVK_UpArrow, .fill), (kVK_DownArrow, .center)]
-        let existing = Set(rules.compactMap(\.from))
-        for (code, action) in presets {
-            let from = KeyCombo(keyCode: code, modifiers: ctrlCmd)
-            if !existing.contains(from) { rules.append(Rule(from: from, to: .window(action))) }
-        }
-    }
 
     /// Start empty: every user sets up their own remaps.
     static var defaultRules: [Rule] { [] }

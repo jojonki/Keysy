@@ -98,7 +98,9 @@ struct RuleRow: View {
                 rule.from = $0
             }
             Image(systemName: "arrow.right").foregroundStyle(.secondary)
-            targetEditor
+            KeyRecorderField(id: "\(rule.id)-to", combo: rule.to, placeholder: "Record output") {
+                rule.to = $0
+            }
             if duplicate {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                     .help("Another enabled rule uses the same trigger; the first one wins.")
@@ -109,54 +111,17 @@ struct RuleRow: View {
         }
         .opacity(rule.enabled ? 1 : 0.5)
     }
-
-    @ViewBuilder private var targetEditor: some View {
-        switch rule.to {
-        case .window(let action):
-            Label(action.display, systemImage: "macwindow")
-                .help("macOS window action (Window ▸ Move & Resize) — not a keystroke")
-                .frame(minWidth: 130).padding(.vertical, 4).padding(.horizontal, 8)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Color.accentColor.opacity(0.12)))
-            targetMenu
-        default:
-            KeyRecorderField(id: "\(rule.id)-to", combo: currentKeys, placeholder: "Record output") {
-                rule.to = .keys($0)
-            }
-            targetMenu
-        }
-    }
-
-    private var currentKeys: KeyCombo? {
-        if case .keys(let k) = rule.to { return k }
-        return nil
-    }
-
-    private var targetMenu: some View {
-        Menu {
-            Button("Keystroke (record keys)") { rule.to = currentKeys.map { .keys($0) } }
-            Divider()
-            Section("Window Action (macOS tiling)") {
-                ForEach(WindowAction.allCases) { a in
-                    Button(a.display) { rule.to = .window(a) }
-                }
-            }
-        } label: { Image(systemName: "ellipsis.circle") }
-            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help("Choose a keystroke or a macOS window action as the output")
-    }
 }
 
-struct SettingsView: View {
+struct RemapsView: View {
     @ObservedObject var store = RuleStore.shared
     @State private var trusted = AXIsProcessTrusted()
-    @State private var autoUpdate = Updater.autoCheckEnabled
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     private let timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Toggle("Enable Keysy", isOn: $store.enabled).toggleStyle(.switch)
+                Toggle("Enable key remapping", isOn: $store.enabled).toggleStyle(.switch)
                 Spacer()
                 if !trusted {
                     Label("Accessibility permission required", systemImage: "exclamationmark.triangle.fill")
@@ -164,70 +129,123 @@ struct SettingsView: View {
                     Button("Open Settings") { Permissions.openAccessibilitySettings() }
                 }
             }
-
-            GroupBox {
+            HStack {
+                Text("Trigger").frame(minWidth: 160, alignment: .leading).padding(.leading, 26)
+                Text("Output").padding(.leading, 30)
+            }
+            .font(.caption).foregroundStyle(.secondary)
+            if store.rules.isEmpty {
+                Text("No remaps yet. Click “Add Remap”, then type the trigger and output keys.")
+                    .foregroundStyle(.secondary).padding(.vertical, 12)
+            }
+            ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Trigger").frame(minWidth: 160, alignment: .leading).padding(.leading, 26)
-                        Text("Output").padding(.leading, 30)
-                    }
-                    .font(.caption).foregroundStyle(.secondary)
-                    if store.rules.isEmpty {
-                        Text("No remaps yet. Click “Add Remap”, then type the trigger and output keys.")
-                            .foregroundStyle(.secondary).padding(.vertical, 12)
-                    }
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 8) {
-                            let dups = store.duplicateTriggers
-                            ForEach($store.rules) { $rule in
-                                RuleRow(rule: $rule, duplicate: rule.from.map { dups.contains($0) } ?? false) {
-                                    RecordingCenter.shared.end()
-                                    store.rules.removeAll { $0.id == rule.id }
-                                }
-                            }
+                    let dups = store.duplicateTriggers
+                    ForEach($store.rules) { $rule in
+                        RuleRow(rule: $rule, duplicate: rule.from.map { dups.contains($0) } ?? false) {
+                            RecordingCenter.shared.end()
+                            store.rules.removeAll { $0.id == rule.id }
                         }
-                        .padding(.vertical, 2)
-                    }
-                    .frame(minHeight: 120, maxHeight: 360)
-                    HStack {
-                        Button { store.addEmpty() } label: { Label("Add Remap", systemImage: "plus") }
-                        Button("Add Window Tiling Presets") { store.addWindowPresets() }
-                            .help("Adds ⌃⌘←/→/↑/↓ → macOS Left / Right / Fill / Center")
-                        Spacer()
                     }
                 }
-                .padding(6)
-            } label: { Text("Key Remaps").font(.headline) }
-
-            Text("Click a field and type the keys. Window actions are not keys — they run macOS's built-in tiling (Window ▸ Move & Resize).")
+                .padding(.vertical, 2)
+            }
+            HStack {
+                Button { store.addEmpty() } label: { Label("Add Remap", systemImage: "plus") }
+                Spacer()
+            }
+            Text("Click a field and type the keys. Pressing the trigger sends the output keys instead.")
                 .font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }
+    }
+}
 
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Launch at login", isOn: $launchAtLogin)
-                        .onChange(of: launchAtLogin) { _, on in
-                            do { on ? try SMAppService.mainApp.register() : try SMAppService.mainApp.unregister() }
-                            catch { launchAtLogin = SMAppService.mainApp.status == .enabled }
-                        }
-                    HStack {
-                        Toggle("Check for updates automatically", isOn: $autoUpdate)
-                            .onChange(of: autoUpdate) { _, v in Updater.autoCheckEnabled = v }
-                        Spacer()
-                        Button("Check Now") { Updater.shared.check(userInitiated: true) }
-                    }
-                    HStack {
-                        Text("Version \(Updater.currentVersion)").foregroundStyle(.secondary)
-                        Spacer()
-                        Link("GitHub", destination: Links.repository)
-                        Link("♥ Sponsor", destination: Links.sponsor)
+// MARK: - macOS built-in shortcuts
+
+struct SystemFeatureRow: View {
+    let feature: SystemFeature
+    @ObservedObject var store = SystemShortcutStore.shared
+
+    var body: some View {
+        let custom = store.custom[feature.id]
+        HStack(spacing: 10) {
+            Text(feature.title)
+                .help(feature.englishTitle == feature.title ? "" : feature.englishTitle)
+            Spacer()
+            KeyRecorderField(id: feature.id, combo: custom, placeholder: store.currentMacDisplay(feature)) {
+                store.set($0, for: feature)
+            }
+            Button { RecordingCenter.shared.end(); store.reset(feature) } label: {
+                Image(systemName: "arrow.uturn.backward")
+            }
+            .buttonStyle(.borderless)
+            .help("Restore the macOS setting")
+            .opacity(custom == nil ? 0 : 1).disabled(custom == nil)
+        }
+    }
+}
+
+struct SystemShortcutsView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Form {
+                ForEach(SystemFeature.Group.allCases) { group in
+                    Section {
+                        ForEach(SystemFeature.all.filter { $0.group == group }) { SystemFeatureRow(feature: $0) }
+                    } header: {
+                        Label(group.rawValue, systemImage: group.symbol)
                     }
                 }
-                .padding(6)
-            } label: { Text("General").font(.headline) }
+            }
+            .formStyle(.grouped)
+            Text("Click a shortcut and type new keys to change it in macOS itself (System Settings ▸ Keyboard ▸ Keyboard Shortcuts). Grey = current macOS setting, untouched. ↩︎ restores it. Window commands apply to apps opened after the change.")
+                .font(.caption).foregroundStyle(.secondary)
+                .padding(.horizontal, 16).padding(.bottom, 12)
         }
-        .padding(20)
-        .frame(minWidth: 600)
-        .onReceive(timer) { _ in trusted = AXIsProcessTrusted() }
+    }
+}
+
+struct GeneralView: View {
+    @State private var autoUpdate = Updater.autoCheckEnabled
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+
+    var body: some View {
+        Form {
+            Toggle("Launch at login", isOn: $launchAtLogin)
+                .onChange(of: launchAtLogin) { _, on in
+                    do { on ? try SMAppService.mainApp.register() : try SMAppService.mainApp.unregister() }
+                    catch { launchAtLogin = SMAppService.mainApp.status == .enabled }
+                }
+            HStack {
+                Toggle("Check for updates automatically", isOn: $autoUpdate)
+                    .onChange(of: autoUpdate) { _, v in Updater.autoCheckEnabled = v }
+                Spacer()
+                Button("Check Now") { Updater.shared.check(userInitiated: true) }
+            }
+            HStack {
+                Text("Version \(Updater.currentVersion)").foregroundStyle(.secondary)
+                Spacer()
+                Link("GitHub", destination: Links.repository)
+                Link("♥ Sponsor", destination: Links.sponsor)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+struct SettingsView: View {
+    @AppStorage("settingsTab") private var tab = "remaps"
+
+    var body: some View {
+        TabView(selection: $tab) {
+            RemapsView().tabItem { Label("Key Remaps", systemImage: "keyboard") }.tag("remaps")
+            SystemShortcutsView().tabItem { Label("macOS Shortcuts", systemImage: "apple.logo") }.tag("system")
+            GeneralView().tabItem { Label("General", systemImage: "gearshape") }.tag("general")
+        }
+        .padding(12)
+        .frame(minWidth: 620, minHeight: 520)
         .onDisappear { RecordingCenter.shared.end() }
     }
 }
