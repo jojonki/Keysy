@@ -54,10 +54,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         openSettings(); return true
     }
 
+    /// The app icon, shrunk to menu bar size (dimmed via appearsDisabled while paused).
+    private static let menuBarIcon: NSImage = {
+        let img = (NSApp.applicationIconImage.copy() as? NSImage) ?? NSImage()
+        img.size = NSSize(width: 18, height: 18)
+        img.accessibilityDescription = "Keysy"
+        return img
+    }()
+
     private func updateIcon() {
         let on = RuleStore.shared.enabled
-        statusItem.button?.image = NSImage(systemSymbolName: on ? "keyboard" : "keyboard.badge.ellipsis",
-                                           accessibilityDescription: "Keysy")
+        statusItem.button?.image = Self.menuBarIcon
         statusItem.button?.appearsDisabled = !on
     }
 
