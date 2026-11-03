@@ -171,7 +171,7 @@ struct RemapsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TabHeader(title: "Other Shortcuts",
+            TabHeader(title: "Custom Shortcuts",
                       summary: "Press a shortcut, and Keysy sends a different shortcut instead (e.g. ⌘9 → ⌃⇧⇥).",
                       scope: .keysy)
             AccessibilityBanner()
@@ -366,7 +366,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .otherShortcuts: return "Other Shortcuts"
+        case .otherShortcuts: return "Custom Shortcuts"
         case .windowLayouts: return "Window Layouts"
         case .macOSFeatures: return "macOS Features"
         case .startup: return "Startup & Updates"
@@ -406,7 +406,7 @@ struct SettingsView: View {
                     Divider()
                     Toggle("Pause Keysy", isOn: Binding(get: { !rules.enabled }, set: { rules.enabled = !$0 }))
                         .toggleStyle(.switch).controlSize(.small)
-                        .help("Stops Other Shortcuts and Window Layouts. macOS Features keep working (they live in macOS).")
+                        .help("Stops Custom Shortcuts and Window Layouts. macOS Features keep working (they live in macOS).")
                         .padding(.horizontal, 12).padding(.bottom, 10).padding(.top, 4)
                 }
             }

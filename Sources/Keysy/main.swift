@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         func line(_ t: String) {
             let i = NSMenuItem(title: t, action: nil, keyEquivalent: ""); i.isEnabled = false; menu.addItem(i)
         }
-        header("Shortcut → Other Shortcuts")
+        header("Shortcut → Custom Shortcuts")
         let remaps = store.rules.filter { $0.enabled && $0.isComplete }
         if remaps.isEmpty { line("None") }
         for r in remaps.prefix(20) { line("\(r.from!.display)  →  \(r.to!.display)") }
