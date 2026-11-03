@@ -115,8 +115,22 @@ enum MenuTitles {
         return s
     }
 
-    /// Titles to register: the user's language and English (apps without that localization show English).
-    static func registrationTitles(_ key: String) -> [String] {
+    /// Menu path (AppKit table keys) of a window command: Window ▸ [Move & Resize ▸] item.
+    static func path(_ key: String) -> [String] {
+        ["Fill", "Center"].contains(key) ? ["Window", key] : ["Window", "Move & Resize", key]
+    }
+
+    /// App Shortcuts keys to register, as full menu paths ("\u{1b}Window\u{1b}Move & Resize\u{1b}Left") so
+    /// unrelated items with the same title (e.g. View ▸ Left) are not affected.
+    /// Both the user's language and English (apps without that localization show English menus).
+    static func registrationKeys(_ key: String) -> [String] {
+        let english = path(key).map { "\u{1b}" + $0 }.joined()
+        let local = path(key).map { "\u{1b}" + localized($0) }.joined()
+        return local == english ? [english] : [local, english]
+    }
+
+    /// Plain-title keys written by earlier Keysy versions (cleaned up on change/reset).
+    static func legacyKeys(_ key: String) -> [String] {
         let l = localized(key)
         return l == key ? [key] : [l, key]
     }
@@ -137,6 +151,24 @@ final class SystemShortcutStore: ObservableObject {
     /// Set after a window command changes: apps that are already running only pick it up after relaunch.
     @Published var needsAppRelaunch = false
 
+    private init() { migrateLegacyKeys() }
+
+    /// Earlier versions registered window commands by bare title, which also hit unrelated items
+    /// such as View ▸ Left. Move those to full menu paths.
+    private func migrateLegacyKeys() {
+        var eq = Self.keyEquivalents()
+        var changed = false
+        for f in SystemFeature.all {
+            guard case .menuCommand(let key) = f.backend else { continue }
+            let value = MenuTitles.legacyKeys(key).lazy.compactMap { eq[$0] as? String }.first
+            guard let value else { continue }
+            for t in MenuTitles.legacyKeys(key) { eq[t] = nil }
+            for t in MenuTitles.registrationKeys(key) where eq[t] == nil { eq[t] = value }
+            changed = true
+        }
+        if changed { Self.writeKeyEquivalents(eq); needsAppRelaunch = true }
+    }
+
     private static let hotKeysDomain = "com.apple.symbolichotkeys" as CFString
     private static let hotKeysKey = "AppleSymbolicHotKeys" as CFString
     private static let keyEquivalentsKey = "NSUserKeyEquivalents" as CFString
@@ -150,7 +182,7 @@ final class SystemShortcutStore: ObservableObject {
             return combo == f.macDefault ? .macDefault : .custom(combo.display)
         case .menuCommand(let key):
             let eq = Self.keyEquivalents()
-            for t in MenuTitles.registrationTitles(key) {
+            for t in MenuTitles.registrationKeys(key) + MenuTitles.legacyKeys(key) {
                 if let s = eq[t] as? String { return .custom(Self.displayKeyEquivalent(s)) }
             }
             return .macDefault
@@ -167,7 +199,8 @@ final class SystemShortcutStore: ObservableObject {
         case .menuCommand(let key):
             var eq = Self.keyEquivalents()
             let s = Self.keyEquivalentString(for: combo)
-            for t in MenuTitles.registrationTitles(key) { eq[t] = s }
+            for t in MenuTitles.legacyKeys(key) { eq[t] = nil }
+            for t in MenuTitles.registrationKeys(key) { eq[t] = s }
             Self.writeKeyEquivalents(eq)
             needsAppRelaunch = true
         }
@@ -183,7 +216,7 @@ final class SystemShortcutStore: ObservableObject {
             Self.writeHotKeys(all)
         case .menuCommand(let key):
             var eq = Self.keyEquivalents()
-            for t in MenuTitles.registrationTitles(key) { eq[t] = nil }
+            for t in MenuTitles.registrationKeys(key) + MenuTitles.legacyKeys(key) { eq[t] = nil }
             Self.writeKeyEquivalents(eq)
             needsAppRelaunch = true
         }

@@ -37,8 +37,9 @@ Change the shortcut of macOS built-in features — only the ones you pick:
 Keysy doesn't imitate these features; it writes your shortcut into **macOS's own settings**,
 the same place System Settings ▸ Keyboard ▸ Keyboard Shortcuts uses:
 
-- Window commands → *App Shortcuts* (All Applications), using the menu titles in your language
-  (taken from AppKit's localization) plus English
+- Window commands → *App Shortcuts* (All Applications), registered by full menu path
+  (Window ▸ Move & Resize ▸ Left) in your language (from AppKit's localization) plus English,
+  so unrelated items with the same title are untouched
 - Screenshots / Input Sources → the system keyboard-shortcut settings
 
 Each row shows macOS's official shortcut and a **Default / Custom / Off** badge;
@@ -46,6 +47,8 @@ Each row shows macOS's official shortcut and a **Default / Custom / Off** badge;
 
 **Window commands apply to apps launched after the change** — macOS reads App Shortcuts only when an
 app starts, so quit and reopen apps that were already running (Keysy offers to relaunch Finder).
+They only work in apps that have the standard **Window ▸ Move & Resize** menu (most Mac apps do;
+some cross-platform apps don't).
 Because the settings live in macOS, they keep working even when Keysy isn't running.
 
 > **Replacing Snappy:** set *Left* → ⌃⌘←, *Right* → ⌃⌘→, *Fill* → ⌃⌘↑ in the Window group,
