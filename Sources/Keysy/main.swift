@@ -65,7 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(withTitle: "No active remaps", action: nil, keyEquivalent: "").isEnabled = false
         } else {
             for r in active.prefix(30) {
-                let item = NSMenuItem(title: "\(r.from!.display)  →  \(r.to!.display)", action: nil, keyEquivalent: "")
+                let item = NSMenuItem(title: "\(r.from!.display)  →  \(r.to!.menuDisplay)", action: nil, keyEquivalent: "")
                 item.isEnabled = false
                 menu.addItem(item)
             }

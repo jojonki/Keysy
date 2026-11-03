@@ -113,7 +113,8 @@ struct RuleRow: View {
     @ViewBuilder private var targetEditor: some View {
         switch rule.to {
         case .window(let action):
-            Text(action.display)
+            Label(action.display, systemImage: "macwindow")
+                .help("macOS window action (Window ▸ Move & Resize) — not a keystroke")
                 .frame(minWidth: 130).padding(.vertical, 4).padding(.horizontal, 8)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.accentColor.opacity(0.12)))
             targetMenu
@@ -134,9 +135,9 @@ struct RuleRow: View {
         Menu {
             Button("Keystroke (record keys)") { rule.to = currentKeys.map { .keys($0) } }
             Divider()
-            Section("macOS Window Tiling") {
+            Section("Window Action (macOS tiling)") {
                 ForEach(WindowAction.allCases) { a in
-                    Button(a.title) { rule.to = .window(a) }
+                    Button(a.display) { rule.to = .window(a) }
                 }
             }
         } label: { Image(systemName: "ellipsis.circle") }
@@ -172,7 +173,7 @@ struct SettingsView: View {
                     }
                     .font(.caption).foregroundStyle(.secondary)
                     if store.rules.isEmpty {
-                        Text("No remaps yet. Click “Add Remap” and type the keys you want.")
+                        Text("No remaps yet. Click “Add Remap”, then type the trigger and output keys.")
                             .foregroundStyle(.secondary).padding(.vertical, 12)
                     }
                     ScrollView {
@@ -198,7 +199,7 @@ struct SettingsView: View {
                 .padding(6)
             } label: { Text("Key Remaps").font(.headline) }
 
-            Text("Click a field and type the keys. Window actions use macOS's built-in tiling (Window ▸ Move & Resize).")
+            Text("Click a field and type the keys. Window actions are not keys — they run macOS's built-in tiling (Window ▸ Move & Resize).")
                 .font(.caption).foregroundStyle(.secondary)
 
             GroupBox {

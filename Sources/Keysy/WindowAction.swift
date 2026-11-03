@@ -35,7 +35,19 @@ enum WindowAction: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var display: String { "Window: \(title)" }
+    /// Human-readable description of the action (not a key name).
+    var display: String {
+        switch self {
+        case .fill: return "Fill Screen"
+        case .center: return "Center Window"
+        case .left: return "Left Half"
+        case .right: return "Right Half"
+        case .top: return "Top Half"
+        case .bottom: return "Bottom Half"
+        case .returnToPrevious: return "Restore Previous Size"
+        default: return "Tile \(title)"
+        }
+    }
 
     /// The macOS default shortcut for this command (always includes 🌐⌃).
     var builtInShortcut: KeyCombo {

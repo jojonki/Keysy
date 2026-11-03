@@ -33,16 +33,17 @@
 |---------|----------------------------|----------------------------------------|
 | ⌘9      | ⌃⇧⇥                        | Previous tab                           |
 | ⌘0      | ⌃⇥                         | Next tab                               |
-| ⌃⌘←     | Window: Left               | Tile window to the left half           |
-| ⌃⌘→     | Window: Right              | Tile window to the right half          |
-| ⌃⌘↑     | Window: Fill               | Fill the screen                        |
+| ⌃⌘←     | 🪟 Left Half (window action) | Tile window to the left half         |
+| ⌃⌘→     | 🪟 Right Half (window action)| Tile window to the right half        |
+| ⌃⌘↑     | 🪟 Fill Screen (window action)| Fill the screen                     |
 
-These are installed as the defaults on first launch; change or delete them freely.
+Keysy starts with no remaps — these are just ideas. Window actions are not keys; they run a
+macOS window command (picked from the `⋯` menu next to the output field).
 
 ### Replacing Snappy
 
 macOS 15+ ships window tiling (🌐⌃← / → / F …). Keysy maps your own shortcuts to those
-commands, so the defaults above reproduce [Snappy](https://github.com/jojonki/Snappy)'s
+commands, so the window examples above (or **Add Window Tiling Presets**) reproduce [Snappy](https://github.com/jojonki/Snappy)'s
 ⌃⌘← / ⌃⌘→ / ⌃⌘↑ behaviour. Quit Snappy (or clear its shortcuts) to avoid both apps reacting.
 
 Window actions press the frontmost app's *Window ▸ Move & Resize* menu item through

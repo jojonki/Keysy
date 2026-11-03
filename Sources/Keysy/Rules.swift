@@ -13,6 +13,12 @@ enum RemapTarget: Codable, Hashable {
         case .window(let w): return w.display
         }
     }
+
+    /// Text-only form for menus, marking window actions so they don't read as key names.
+    var menuDisplay: String {
+        if case .window(let w) = self { return "🪟 " + w.display }
+        return display
+    }
 }
 
 struct Rule: Codable, Identifiable, Hashable {
@@ -87,16 +93,6 @@ final class RuleStore: ObservableObject {
         }
     }
 
-    static var defaultRules: [Rule] {
-        let cmd = CGEventFlags.maskCommand.rawValue
-        let ctrl = CGEventFlags.maskControl.rawValue, shift = CGEventFlags.maskShift.rawValue
-        let ctrlCmd = ctrl | cmd
-        return [
-            Rule(from: KeyCombo(keyCode: kVK_ANSI_9, modifiers: cmd), to: .keys(KeyCombo(keyCode: kVK_Tab, modifiers: ctrl | shift))),
-            Rule(from: KeyCombo(keyCode: kVK_ANSI_0, modifiers: cmd), to: .keys(KeyCombo(keyCode: kVK_Tab, modifiers: ctrl))),
-            Rule(from: KeyCombo(keyCode: kVK_LeftArrow, modifiers: ctrlCmd), to: .window(.left)),
-            Rule(from: KeyCombo(keyCode: kVK_RightArrow, modifiers: ctrlCmd), to: .window(.right)),
-            Rule(from: KeyCombo(keyCode: kVK_UpArrow, modifiers: ctrlCmd), to: .window(.fill)),
-        ]
-    }
+    /// Start empty: every user sets up their own remaps.
+    static var defaultRules: [Rule] { [] }
 }
