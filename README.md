@@ -23,7 +23,8 @@ The sidebar has two groups: **Shortcuts** (by what the shortcut does) and **Keys
 
 ### Shortcuts ▸ Custom Shortcuts
 - **Any number of shortcuts** that type other keys, each with its own on/off switch
-- **Record by typing** — click a field and press the keys
+- **Record by typing** — click a field and press the keys, or **pick from a list** (⌄ button) for keys your
+  keyboard doesn't have (F13–F20, Home/End, keypad, JIS/ISO keys…) or that macOS grabs first
 - Example: ⌘9 → ⌃⇧⇥ (previous tab), ⌘0 → ⌃⇥ (next tab)
 - Starts empty; nothing is remapped until you add it
 

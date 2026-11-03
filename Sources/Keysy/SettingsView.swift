@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import Combine
 import ServiceManagement
+import Carbon.HIToolbox
 
 // MARK: - Key recorder
 
@@ -55,8 +56,13 @@ struct KeyRecorderField: View {
     var dimmed: Bool? = nil
     let onCapture: (KeyCombo) -> Void
     @ObservedObject private var center = RecordingCenter.shared
+    @State private var showPicker = false
 
     var body: some View {
+        HStack(spacing: 4) { field }
+    }
+
+    @ViewBuilder private var field: some View {
         let recording = center.activeID == id
         Button {
             recording ? center.end() : center.begin(id: id, onCapture: onCapture)
@@ -75,6 +81,14 @@ struct KeyRecorderField: View {
         }
         .buttonStyle(.plain)
         .help("Click, then type the key combination. Esc cancels.")
+        // Alternative to typing: some shortcuts are taken by macOS before Keysy can see them.
+        Button { center.end(); showPicker = true } label: { Image(systemName: "chevron.down.circle") }
+            .buttonStyle(.borderless)
+            .help("Choose the keys from a list instead of typing them")
+            .popover(isPresented: $showPicker, arrowEdge: .bottom) {
+                KeyPicker(initial: combo) { picked in showPicker = false; onCapture(picked) }
+                    onCancel: { showPicker = false }
+            }
     }
 
     private func label(recording: Bool) -> String {
@@ -84,6 +98,104 @@ struct KeyRecorderField: View {
         }
         return combo?.display ?? placeholder
     }
+}
+
+// MARK: - Key picker (choose instead of type)
+
+struct KeyPicker: View {
+    let onSet: (KeyCombo) -> Void
+    let onCancel: () -> Void
+    @State private var mods: UInt64
+    @State private var keyCode: Int?
+
+    init(initial: KeyCombo?, onSet: @escaping (KeyCombo) -> Void, onCancel: @escaping () -> Void) {
+        self.onSet = onSet; self.onCancel = onCancel
+        _mods = State(initialValue: initial?.modifiers ?? 0)
+        _keyCode = State(initialValue: initial?.keyCode)
+    }
+
+    private static let modifierButtons: [(String, String, CGEventFlags)] = [
+        ("⌃", "Control", .maskControl), ("⌥", "Option", .maskAlternate), ("⇧", "Shift", .maskShift),
+        ("⌘", "Command", .maskCommand), ("🌐", "Fn / Globe", .maskSecondaryFn),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Choose keys").font(.headline)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Modifiers").font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    ForEach(Self.modifierButtons, id: \.1) { sym, name, flag in
+                        let on = mods & flag.rawValue != 0
+                        Button { mods ^= flag.rawValue } label: {
+                            VStack(spacing: 1) {
+                                Text(sym).font(.title3)
+                                Text(name).font(.caption2)
+                            }
+                            .frame(width: 64, height: 44)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(on ? Color.accentColor : Color.secondary.opacity(0.12)))
+                            .foregroundStyle(on ? Color.white : Color.primary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Key").font(.caption).foregroundStyle(.secondary)
+                Picker("", selection: $keyCode) {
+                    Text("Choose a key…").tag(Int?.none)
+                    ForEach(KeyCatalog.groups, id: \.name) { g in
+                        Section(g.name) {
+                            ForEach(g.codes, id: \.self) { c in Text(KeyCombo.keyName(c)).tag(Int?.some(c)) }
+                        }
+                    }
+                }
+                .labelsHidden().frame(width: 220)
+            }
+            HStack {
+                Text(preview).font(.system(.title3, design: .rounded).weight(.medium))
+                    .foregroundStyle(keyCode == nil ? .secondary : .primary)
+                Spacer()
+                Button("Cancel", action: onCancel).keyboardShortcut(.cancelAction)
+                Button("Set") { if let k = keyCode { onSet(KeyCombo.normalized(keyCode: k, flags: mods)) } }
+                    .keyboardShortcut(.defaultAction).disabled(keyCode == nil)
+            }
+        }
+        .padding(16)
+        .frame(width: 380)
+    }
+
+    private var preview: String {
+        guard let k = keyCode else { return KeyCombo.modifierSymbols(mods) + "…" }
+        return KeyCombo.normalized(keyCode: k, flags: mods).display
+    }
+}
+
+/// Keys offered in the picker, grouped. Uses physical key codes; names follow the current layout.
+enum KeyCatalog {
+    struct Group { let name: String; let codes: [Int] }
+    static let groups: [Group] = [
+        Group(name: "Letters", codes: [kVK_ANSI_A, kVK_ANSI_B, kVK_ANSI_C, kVK_ANSI_D, kVK_ANSI_E, kVK_ANSI_F, kVK_ANSI_G,
+                                       kVK_ANSI_H, kVK_ANSI_I, kVK_ANSI_J, kVK_ANSI_K, kVK_ANSI_L, kVK_ANSI_M, kVK_ANSI_N,
+                                       kVK_ANSI_O, kVK_ANSI_P, kVK_ANSI_Q, kVK_ANSI_R, kVK_ANSI_S, kVK_ANSI_T, kVK_ANSI_U,
+                                       kVK_ANSI_V, kVK_ANSI_W, kVK_ANSI_X, kVK_ANSI_Y, kVK_ANSI_Z]),
+        Group(name: "Numbers", codes: [kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5,
+                                       kVK_ANSI_6, kVK_ANSI_7, kVK_ANSI_8, kVK_ANSI_9, kVK_ANSI_0]),
+        Group(name: "Arrows & Navigation", codes: [kVK_LeftArrow, kVK_RightArrow, kVK_UpArrow, kVK_DownArrow,
+                                                   kVK_Home, kVK_End, kVK_PageUp, kVK_PageDown]),
+        Group(name: "Special", codes: [kVK_Space, kVK_Tab, kVK_Return, kVK_Escape, kVK_Delete, kVK_ForwardDelete,
+                                       kVK_ANSI_KeypadEnter, kVK_JIS_Eisu, kVK_JIS_Kana]),
+        Group(name: "Symbols", codes: [kVK_ANSI_Minus, kVK_ANSI_Equal, kVK_ANSI_LeftBracket, kVK_ANSI_RightBracket,
+                                       kVK_ANSI_Backslash, kVK_ANSI_Semicolon, kVK_ANSI_Quote, kVK_ANSI_Comma,
+                                       kVK_ANSI_Period, kVK_ANSI_Slash, kVK_ANSI_Grave, kVK_JIS_Yen, kVK_JIS_Underscore]),
+        Group(name: "Function Keys", codes: KeyCombo.fKeys),
+        Group(name: "Keypad", codes: [kVK_ANSI_Keypad0, kVK_ANSI_Keypad1, kVK_ANSI_Keypad2, kVK_ANSI_Keypad3,
+                                      kVK_ANSI_Keypad4, kVK_ANSI_Keypad5, kVK_ANSI_Keypad6, kVK_ANSI_Keypad7,
+                                      kVK_ANSI_Keypad8, kVK_ANSI_Keypad9, kVK_ANSI_KeypadPlus, kVK_ANSI_KeypadMinus,
+                                      kVK_ANSI_KeypadMultiply, kVK_ANSI_KeypadDivide, kVK_ANSI_KeypadEquals,
+                                      kVK_ANSI_KeypadDecimal, kVK_ANSI_KeypadClear, kVK_JIS_KeypadComma]),
+        Group(name: "Other Keyboards", codes: [kVK_ISO_Section, kVK_Help]),
+    ]
 }
 
 // MARK: - Rules

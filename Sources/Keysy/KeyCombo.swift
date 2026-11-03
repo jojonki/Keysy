@@ -69,6 +69,15 @@ struct KeyCombo: Codable, Hashable {
             kVK_JIS_Eisu: "英数", kVK_JIS_Kana: "かな",
         ]
         for (i, code) in fKeys.enumerated() { names[code] = "F\(i + 1)" }
+        let keypad: [Int: String] = [
+            kVK_ANSI_Keypad0: "0", kVK_ANSI_Keypad1: "1", kVK_ANSI_Keypad2: "2", kVK_ANSI_Keypad3: "3",
+            kVK_ANSI_Keypad4: "4", kVK_ANSI_Keypad5: "5", kVK_ANSI_Keypad6: "6", kVK_ANSI_Keypad7: "7",
+            kVK_ANSI_Keypad8: "8", kVK_ANSI_Keypad9: "9", kVK_ANSI_KeypadPlus: "+", kVK_ANSI_KeypadMinus: "−",
+            kVK_ANSI_KeypadMultiply: "×", kVK_ANSI_KeypadDivide: "÷", kVK_ANSI_KeypadEquals: "=",
+            kVK_ANSI_KeypadDecimal: ".", kVK_ANSI_KeypadClear: "Clear", kVK_JIS_KeypadComma: ",",
+        ]
+        for (code, n) in keypad { names[code] = "Keypad " + n }
+        names[kVK_ISO_Section] = "§"
         return names
     }()
 
