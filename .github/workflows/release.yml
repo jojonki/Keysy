@@ -1,0 +1,24 @@
+name: Release
+# Releases are built locally with a Developer ID signature (see build.sh + gh release).
+# This workflow is a manual ad-hoc-signed fallback only.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version (e.g. 0.1.0)
+        required: true
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: VERSION="${{ inputs.version }}" ./build.sh
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          files: build/Keysy.zip
+          generate_release_notes: true
