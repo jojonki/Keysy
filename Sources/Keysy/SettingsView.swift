@@ -51,6 +51,8 @@ struct KeyRecorderField: View {
     let id: String
     let combo: KeyCombo?
     let placeholder: String
+    /// Overrides the dimmed look used for an empty field (nil = dim when `combo` is nil).
+    var dimmed: Bool? = nil
     let onCapture: (KeyCombo) -> Void
     @ObservedObject private var center = RecordingCenter.shared
 
@@ -61,7 +63,7 @@ struct KeyRecorderField: View {
         } label: {
             Text(label(recording: recording))
                 .font(.system(.body, design: .rounded).weight(combo == nil && !recording ? .regular : .medium))
-                .foregroundStyle(recording ? Color.accentColor : (combo == nil ? .secondary : .primary))
+                .foregroundStyle(recording ? Color.accentColor : ((dimmed ?? (combo == nil)) ? .secondary : .primary))
                 .frame(minWidth: 130)
                 .padding(.vertical, 4).padding(.horizontal, 8)
                 .background(
@@ -169,27 +171,75 @@ struct SystemFeatureRow: View {
     @ObservedObject var store = SystemShortcutStore.shared
 
     var body: some View {
-        let custom = store.custom[feature.id]
+        let state = store.state(feature)
         HStack(spacing: 10) {
-            Text(feature.title)
-                .help(feature.englishTitle == feature.title ? "" : feature.englishTitle)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(feature.title)
+                    .help(feature.englishTitle == feature.title ? "" : feature.englishTitle)
+                Text("macOS default: \(feature.macDefaultDisplay)")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Spacer()
-            KeyRecorderField(id: feature.id, combo: custom, placeholder: store.currentMacDisplay(feature)) {
+            badge(state)
+            KeyRecorderField(id: feature.id, combo: nil, placeholder: text(state),
+                             dimmed: state == .macDefault) {
                 store.set($0, for: feature)
             }
-            Button { RecordingCenter.shared.end(); store.reset(feature) } label: {
+            Button { RecordingCenter.shared.end(); store.resetToDefault(feature) } label: {
                 Image(systemName: "arrow.uturn.backward")
             }
             .buttonStyle(.borderless)
-            .help("Restore the macOS setting")
-            .opacity(custom == nil ? 0 : 1).disabled(custom == nil)
+            .help("Reset to the macOS default (\(feature.macDefaultDisplay))")
+            .opacity(state == .macDefault ? 0 : 1).disabled(state == .macDefault)
+        }
+    }
+
+    private func text(_ s: ShortcutState) -> String {
+        switch s {
+        case .macDefault: return feature.macDefaultDisplay
+        case .custom(let d): return d
+        case .off: return "Off"
+        }
+    }
+
+    @ViewBuilder private func badge(_ s: ShortcutState) -> some View {
+        switch s {
+        case .macDefault:
+            Text("Default").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(Capsule().fill(Color.secondary.opacity(0.15)))
+        case .custom:
+            Text("Custom").font(.caption2.weight(.semibold)).foregroundStyle(Color.accentColor)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+        case .off:
+            Text("Off").font(.caption2.weight(.semibold)).foregroundStyle(.orange)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(Capsule().fill(Color.orange.opacity(0.15)))
         }
     }
 }
 
 struct SystemShortcutsView: View {
+    @ObservedObject var store = SystemShortcutStore.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if store.needsAppRelaunch {
+                HStack(alignment: .top) {
+                    Image(systemName: "arrow.clockwise.circle.fill").foregroundStyle(.orange)
+                    Text("Window shortcuts take effect in apps opened from now on. Quit and reopen apps that are already running (macOS reads these shortcuts only at app launch).")
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Button("Relaunch Finder") { store.relaunchFinder() }
+                    Button { store.needsAppRelaunch = false } label: { Image(systemName: "xmark") }
+                        .buttonStyle(.borderless)
+                }
+                .font(.callout)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.12)))
+                .padding(.horizontal, 16).padding(.top, 8)
+            }
             Form {
                 ForEach(SystemFeature.Group.allCases) { group in
                     Section {
@@ -200,7 +250,7 @@ struct SystemShortcutsView: View {
                 }
             }
             .formStyle(.grouped)
-            Text("Click a shortcut and type new keys to change it in macOS itself (System Settings ▸ Keyboard ▸ Keyboard Shortcuts). Grey = current macOS setting, untouched. ↩︎ restores it. Window commands apply to apps opened after the change.")
+            Text("Click a shortcut and type new keys to change it in macOS itself (System Settings ▸ Keyboard ▸ Keyboard Shortcuts). “Default” = macOS's official shortcut; ↩︎ resets a row to it.")
                 .font(.caption).foregroundStyle(.secondary)
                 .padding(.horizontal, 16).padding(.bottom, 12)
         }

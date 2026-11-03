@@ -21,7 +21,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { Updater.shared.checkIfDue() }
         #if DEBUG
         if let path = ProcessInfo.processInfo.environment["KEYSY_SNAPSHOT"] { snapshotSettings(to: path) }
-        if ProcessInfo.processInfo.environment["KEYSY_SELFTEST"] != nil { SystemShortcutStore.selfTest(); exit(0) }
         #endif
     }
 

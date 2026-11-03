@@ -41,8 +41,11 @@ the same place System Settings ▸ Keyboard ▸ Keyboard Shortcuts uses:
   (taken from AppKit's localization) plus English
 - Screenshots / Input Sources → the system keyboard-shortcut settings
 
-Grey shortcuts show the current macOS setting, untouched. ↩︎ restores exactly what macOS had before.
-Window command changes apply to apps launched after the change.
+Each row shows macOS's official shortcut and a **Default / Custom / Off** badge;
+↩︎ resets that row to the official shortcut.
+
+**Window commands apply to apps launched after the change** — macOS reads App Shortcuts only when an
+app starts, so quit and reopen apps that were already running (Keysy offers to relaunch Finder).
 Because the settings live in macOS, they keep working even when Keysy isn't running.
 
 > **Replacing Snappy:** set *Left* → ⌃⌘←, *Right* → ⌃⌘→, *Fill* → ⌃⌘↑ in the Window group,

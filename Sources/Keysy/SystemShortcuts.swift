@@ -122,104 +122,79 @@ enum MenuTitles {
     }
 }
 
-// MARK: - Writing macOS settings
+// MARK: - Reading / writing macOS settings
+
+/// State of one feature's shortcut, read live from macOS's settings.
+enum ShortcutState: Equatable {
+    case macDefault             // untouched: macOS's official shortcut
+    case custom(String)         // changed (by Keysy or System Settings)
+    case off                    // disabled in System Settings
+}
 
 final class SystemShortcutStore: ObservableObject {
     static let shared = SystemShortcutStore()
 
-    /// Features the user customized → the shortcut Keysy wrote.
-    @Published private(set) var custom: [String: KeyCombo] = [:]
-    @Published private(set) var lastError: String?
+    /// Set after a window command changes: apps that are already running only pick it up after relaunch.
+    @Published var needsAppRelaunch = false
 
-    private let customKey = "systemShortcuts"
-    private let originalsKey = "systemShortcutOriginals"
     private static let hotKeysDomain = "com.apple.symbolichotkeys" as CFString
     private static let hotKeysKey = "AppleSymbolicHotKeys" as CFString
     private static let keyEquivalentsKey = "NSUserKeyEquivalents" as CFString
 
-    private init() {
-        if let d = UserDefaults.standard.data(forKey: customKey),
-           let c = try? JSONDecoder().decode([String: KeyCombo].self, from: d) { custom = c }
-    }
-
-    func isCustom(_ f: SystemFeature) -> Bool { custom[f.id] != nil }
-
-    /// What macOS currently uses for a feature that Keysy has not customized.
-    func currentMacDisplay(_ f: SystemFeature) -> String {
+    func state(_ f: SystemFeature) -> ShortcutState {
         switch f.backend {
         case .symbolicHotKey(let id):
-            guard let entry = Self.hotKeys()[String(id)] as? [String: Any] else { return f.macDefaultDisplay }
-            if (entry["enabled"] as? Bool) == false || (entry["enabled"] as? Int) == 0 { return "Off" }
-            if let combo = Self.combo(fromHotKeyEntry: entry) { return combo.display }
-            return f.macDefaultDisplay
+            guard let entry = Self.hotKeys()[String(id)] as? [String: Any] else { return .macDefault }
+            if !Self.isEnabled(entry) { return .off }
+            guard let combo = Self.combo(fromHotKeyEntry: entry) else { return .macDefault }
+            return combo == f.macDefault ? .macDefault : .custom(combo.display)
         case .menuCommand(let key):
             let eq = Self.keyEquivalents()
             for t in MenuTitles.registrationTitles(key) {
-                if let s = eq[t] as? String { return Self.displayKeyEquivalent(s) }
+                if let s = eq[t] as? String { return .custom(Self.displayKeyEquivalent(s)) }
             }
-            return f.macDefaultDisplay
+            return .macDefault
         }
     }
 
     func set(_ combo: KeyCombo, for f: SystemFeature) {
+        objectWillChange.send()
         switch f.backend {
         case .symbolicHotKey(let id):
             var all = Self.hotKeys()
-            rememberOriginal(f, value: all[String(id)])
             all[String(id)] = Self.hotKeyEntry(for: combo)
             Self.writeHotKeys(all)
         case .menuCommand(let key):
             var eq = Self.keyEquivalents()
             let s = Self.keyEquivalentString(for: combo)
-            for t in MenuTitles.registrationTitles(key) {
-                rememberOriginal(f, value: eq[t], suffix: t)
-                eq[t] = s
-            }
+            for t in MenuTitles.registrationTitles(key) { eq[t] = s }
             Self.writeKeyEquivalents(eq)
+            needsAppRelaunch = true
         }
-        custom[f.id] = combo
-        persist()
     }
 
-    /// Restores whatever macOS had before Keysy changed it.
-    func reset(_ f: SystemFeature) {
-        guard custom[f.id] != nil else { return }
+    /// Puts the feature back on macOS's official shortcut.
+    func resetToDefault(_ f: SystemFeature) {
+        objectWillChange.send()
         switch f.backend {
         case .symbolicHotKey(let id):
             var all = Self.hotKeys()
-            all[String(id)] = takeOriginal(f)
+            all[String(id)] = Self.hotKeyEntry(for: f.macDefault)
             Self.writeHotKeys(all)
         case .menuCommand(let key):
             var eq = Self.keyEquivalents()
-            for t in MenuTitles.registrationTitles(key) { eq[t] = takeOriginal(f, suffix: t) }
+            for t in MenuTitles.registrationTitles(key) { eq[t] = nil }
             Self.writeKeyEquivalents(eq)
+            needsAppRelaunch = true
         }
-        custom[f.id] = nil
-        persist()
     }
 
-    private func persist() {
-        if let d = try? JSONEncoder().encode(custom) { UserDefaults.standard.set(d, forKey: customKey) }
-    }
-
-    // Originals are stored once (the first time Keysy overrides a setting) so reset is exact.
-    private func originalID(_ f: SystemFeature, _ suffix: String) -> String { suffix.isEmpty ? f.id : "\(f.id)|\(suffix)" }
-
-    private func rememberOriginal(_ f: SystemFeature, value: Any?, suffix: String = "") {
-        var o = UserDefaults.standard.dictionary(forKey: originalsKey) ?? [:]
-        let k = originalID(f, suffix)
-        guard o[k] == nil else { return }
-        o[k] = value ?? "__absent__"
-        UserDefaults.standard.set(o, forKey: originalsKey)
-    }
-
-    private func takeOriginal(_ f: SystemFeature, suffix: String = "") -> Any? {
-        var o = UserDefaults.standard.dictionary(forKey: originalsKey) ?? [:]
-        let k = originalID(f, suffix)
-        let v = o.removeValue(forKey: k)
-        UserDefaults.standard.set(o, forKey: originalsKey)
-        if let s = v as? String, s == "__absent__" { return nil }
-        return v
+    /// Finder is always running, so offer to relaunch it (it has no unsaved documents).
+    func relaunchFinder() {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+        p.arguments = ["Finder"]
+        try? p.run()
     }
 
     // MARK: symbolic hotkeys
@@ -227,6 +202,12 @@ final class SystemShortcutStore: ObservableObject {
     private static func hotKeys() -> [String: Any] {
         CFPreferencesAppSynchronize(hotKeysDomain)
         return CFPreferencesCopyAppValue(hotKeysKey, hotKeysDomain) as? [String: Any] ?? [:]
+    }
+
+    private static func isEnabled(_ entry: [String: Any]) -> Bool {
+        if let b = entry["enabled"] as? Bool { return b }
+        if let n = entry["enabled"] as? Int { return n != 0 }
+        return true
     }
 
     private static func writeHotKeys(_ all: [String: Any]) {
@@ -297,31 +278,11 @@ final class SystemShortcutStore: ObservableObject {
         let map: [Character: String] = ["^": "⌃", "~": "⌥", "$": "⇧", "@": "⌘"]
         while let c = rest.first, let sym = map[c], rest.count > 1 { mods += sym; rest = rest.dropFirst() }
         let key = String(rest)
-        let names: [String: String] = ["\u{F700}": "↑", "\u{F701}": "↓", "\u{F702}": "←", "\u{F703}": "→", " ": "Space", "\t": "⇥", "\r": "↩"]
+        let names: [String: String] = ["\u{F700}": "↑", "\u{F701}": "↓", "\u{F702}": "←", "\u{F703}": "→",
+                                       "\u{F729}": "↖", "\u{F72B}": "↘", "\u{F72C}": "⇞", "\u{F72D}": "⇟",
+                                       " ": "Space", "\t": "⇥", "\r": "↩", "\u{8}": "⌫", "\u{1B}": "⎋"]
         let order: [Character] = ["⌃", "⌥", "⇧", "⌘"]
         let sortedMods = String(mods.sorted { order.firstIndex(of: $0)! < order.firstIndex(of: $1)! })
         return sortedMods + (names[key] ?? key.uppercased())
     }
 }
-
-#if DEBUG
-extension SystemShortcutStore {
-    /// Debug aid: round-trips a menu command and a symbolic hotkey through set/reset.
-    static func selfTest() {
-        let s = shared
-        let opt = CGEventFlags.maskAlternate.rawValue, ctrl = CGEventFlags.maskControl.rawValue
-        for f in SystemFeature.all where f.englishTitle == "Left & Right" || f.backend == .symbolicHotKey(184) {
-            let before = s.currentMacDisplay(f)
-            s.set(KeyCombo(keyCode: kVK_RightArrow, modifiers: ctrl | opt), for: f)
-            let eq = keyEquivalents(), hk = hotKeys()["184"] ?? "-"
-            print("[\(f.title)] before=\(before) custom=\(s.custom[f.id]!.display)")
-            print("   NSUserKeyEquivalents=\(eq)")
-            if f.group != .window { print("   hotkey184=\(hk)") }
-            s.reset(f)
-            print("   after reset: \(s.currentMacDisplay(f)) custom=\(s.custom[f.id].map(\.display) ?? "nil")")
-        }
-        print("NSUserKeyEquivalents final=\(keyEquivalents())")
-        print("hotkey184 final=\(hotKeys()["184"] ?? "-")")
-    }
-}
-#endif
